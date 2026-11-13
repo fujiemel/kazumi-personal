@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
@@ -31,6 +32,7 @@ import 'package:kazumi/services/player/pip_utils.dart';
 import 'package:kazumi/services/player/timed_shutdown_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/utils/media.dart';
 
 class VideoPage extends StatefulWidget {
   const VideoPage({
@@ -164,22 +166,68 @@ class _VideoPageState extends State<VideoPage>
     });
   }
 
+  ({int listIndex, int roadIndex})? _findEpisodePosition(int canonical) {
+    final roads = videoPageController.roadList;
+    for (var roadIndex = 0; roadIndex < roads.length; roadIndex++) {
+      final road = roads[roadIndex];
+      final count = math.min(road.data.length, road.identifier.length);
+      for (var index = 0; index < count; index++) {
+        if (extractEpisodeNumber(road.identifier[index]) == canonical) {
+          return (listIndex: index + 1, roadIndex: roadIndex);
+        }
+      }
+    }
+    return null;
+  }
+
   void _initOnlineMode() {
     videoPageController.historyOffset = 0;
 
-    var progress = historyController.lastWatching(
-        videoPageController.bangumiItem,
-        videoPageController.currentPlugin.name);
-    if (progress != null) {
-      if (videoPageController.roadList.length > progress.road) {
-        if (videoPageController.roadList[progress.road].data.length >=
-            progress.episode) {
-          videoPageController.resetEpisodeState(
-            episode: progress.episode,
-            road: progress.road,
+    var restored = false;
+    final preferred = videoPageController.preferredEpisodeNumber;
+    if (preferred != null) {
+      var position = _findEpisodePosition(preferred);
+      if (position == null && videoPageController.roadList.isNotEmpty) {
+        final road = videoPageController.roadList.first;
+        final count = math.min(road.data.length, road.identifier.length);
+        if (count > 0) {
+          final target = preferred > count
+              ? count
+              : (preferred < 1 ? 1 : preferred);
+          position = (
+            listIndex: target,
+            roadIndex: 0,
           );
-          if (playResume) {
-            videoPageController.historyOffset = progress.progress.inSeconds;
+        }
+      }
+      if (position != null) {
+        videoPageController.resetEpisodeState(
+          episode: position.listIndex,
+          road: position.roadIndex,
+        );
+        if (playResume) {
+          videoPageController.historyOffset =
+              videoPageController.preferredPositionSeconds ?? 0;
+        }
+        restored = true;
+      }
+    }
+
+    if (!restored) {
+      var progress = historyController.lastWatching(
+          videoPageController.bangumiItem,
+          videoPageController.currentPlugin.name);
+      if (progress != null) {
+        if (videoPageController.roadList.length > progress.road) {
+          if (videoPageController.roadList[progress.road].data.length >=
+              progress.episode) {
+            videoPageController.resetEpisodeState(
+              episode: progress.episode,
+              road: progress.road,
+            );
+            if (playResume) {
+              videoPageController.historyOffset = progress.progress.inSeconds;
+            }
           }
         }
       }

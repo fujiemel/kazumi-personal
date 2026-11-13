@@ -19,12 +19,20 @@ class OnlineVideoPlaybackArgs extends VideoPlaybackArgs {
     required this.title,
     required this.src,
     required this.roads,
+    this.episodeNumber,
+    this.positionSeconds,
   });
 
   final Plugin plugin;
   final String title;
   final String src;
   final List<Road> roads;
+
+  /// Canonical episode number to resume at, parsed from the previous history.
+  final int? episodeNumber;
+
+  /// Playback offset for [episodeNumber], in seconds.
+  final int? positionSeconds;
 }
 
 class OfflineVideoPlaybackArgs extends VideoPlaybackArgs {

@@ -120,6 +120,12 @@ abstract class _VideoPageController with Store implements Disposable {
   @observable
   int historyOffset = 0;
 
+  /// Canonical episode number to resume at, supplied by the source picker.
+  int? preferredEpisodeNumber;
+
+  /// Playback offset for [preferredEpisodeNumber], in seconds.
+  int? preferredPositionSeconds;
+
   @observable
   bool isOfflineMode = false;
 
@@ -162,9 +168,13 @@ abstract class _VideoPageController with Store implements Disposable {
         currentPlugin = args.plugin;
         title = args.title;
         src = args.src;
+        preferredEpisodeNumber = args.episodeNumber;
+        preferredPositionSeconds = args.positionSeconds;
         roadList.clear();
         roadList.addAll(args.roads);
       case OfflineVideoPlaybackArgs():
+        preferredEpisodeNumber = null;
+        preferredPositionSeconds = null;
         _initForOfflinePlayback(
           bangumiItem: args.bangumiItem,
           pluginName: args.pluginName,

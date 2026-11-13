@@ -33,9 +33,16 @@ part 'source_captcha_flow.dart';
 part 'source_sheet_view.dart';
 
 class SourceSheet extends StatefulWidget {
-  const SourceSheet({super.key, required this.infoController});
+  const SourceSheet({
+    super.key,
+    required this.infoController,
+    this.continueEpisodeNumber,
+    this.continuePositionSeconds,
+  });
 
   final InfoController infoController;
+  final int? continueEpisodeNumber;
+  final int? continuePositionSeconds;
 
   @override
   State<SourceSheet> createState() => _SourceSheetState();
@@ -139,6 +146,8 @@ class _SourceSheetState extends State<SourceSheet> with KazumiDialogOwner {
               title: searchItem.name,
               src: searchItem.src,
               roads: roads,
+              episodeNumber: widget.continueEpisodeNumber,
+              positionSeconds: widget.continuePositionSeconds,
             ),
           ));
     }, onError: (error, stackTrace) {
