@@ -1,6 +1,8 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/card/bangumi_air_info_card.dart';
+import 'package:kazumi/bean/card/bangumi_episode_grid.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/pages/info/info_comments_view.dart';
@@ -10,6 +12,7 @@ import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_relation.dart';
+import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
 import 'package:kazumi/modules/staff/staff_item.dart';
@@ -40,6 +43,9 @@ class InfoTabView extends StatefulWidget {
     required this.characterList,
     required this.staffList,
     required this.relationList,
+    required this.episodes,
+    required this.episodesLoading,
+    required this.watchedEpisode,
     required this.isLoading,
   });
 
@@ -64,6 +70,9 @@ class InfoTabView extends StatefulWidget {
   final List<CharacterItem> characterList;
   final List<StaffFullItem> staffList;
   final List<BangumiRelation> relationList;
+  final List<EpisodeInfo> episodes;
+  final bool episodesLoading;
+  final int watchedEpisode;
   final bool isLoading;
 
   @override
@@ -75,7 +84,105 @@ class _InfoTabViewState extends State<InfoTabView> {
   bool fullIntro = false;
   bool fullTag = false;
 
+  Widget get overviewContent {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('简介', style: TextStyle(fontSize: 18)),
+        const SizedBox(height: 8),
+        LayoutBuilder(builder: (context, constraints) {
+          final span = TextSpan(text: widget.bangumiItem.summary);
+          final tp =
+              TextPainter(text: span, textDirection: TextDirection.ltr);
+          tp.layout(maxWidth: constraints.maxWidth);
+          final numLines = tp.computeLineMetrics().length;
+          if (numLines > 7) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                SizedBox(
+                  height: fullIntro ? null : 120,
+                  width: constraints.maxWidth,
+                  child: SelectableText(
+                    widget.bangumiItem.summary,
+                    textAlign: TextAlign.start,
+                    scrollBehavior: const ScrollBehavior().copyWith(
+                      scrollbars: false,
+                    ),
+                    scrollPhysics: NeverScrollableScrollPhysics(),
+                    selectionHeightStyle: ui.BoxHeightStyle.max,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      fullIntro = !fullIntro;
+                    });
+                  },
+                  child: Text(fullIntro ? '加载更少' : '加载更多'),
+                ),
+              ],
+            );
+          } else {
+            return SelectableText(
+              widget.bangumiItem.summary,
+              textAlign: TextAlign.start,
+              scrollPhysics: NeverScrollableScrollPhysics(),
+              selectionHeightStyle: ui.BoxHeightStyle.max,
+            );
+          }
+        }),
+        const SizedBox(height: 16),
+        Text('标签', style: TextStyle(fontSize: 18)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8.0,
+          runSpacing: isDesktop() ? 8 : 0,
+          children: List<Widget>.generate(
+              fullTag || widget.bangumiItem.tags.length < 13
+                  ? widget.bangumiItem.tags.length
+                  : 13, (int index) {
+            if (!fullTag && index == 12) {
+              return ActionChip(
+                label: Text(
+                  '更多 +',
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary),
+                ),
+                onPressed: () {
+                  setState(() {
+                    fullTag = !fullTag;
+                  });
+                },
+              );
+            }
+            return ActionChip(
+              label: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('${widget.bangumiItem.tags[index].name} '),
+                  Text(
+                    '${widget.bangumiItem.tags[index].count}',
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary),
+                  ),
+                ],
+              ),
+              onPressed: () {
+                final tagName = Uri.encodeComponent(
+                    widget.bangumiItem.tags[index].name);
+                context.pushNamed('/search/$tagName');
+              },
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
   Widget get infoBody {
+    final wide = MediaQuery.sizeOf(context).width > 900;
+    final mainEpisodeCount = widget.episodes.where((e) => e.type == 0).length;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -86,96 +193,52 @@ class _InfoTabViewState extends State<InfoTabView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('简介', style: TextStyle(fontSize: 18)),
-              const SizedBox(height: 8),
-              LayoutBuilder(builder: (context, constraints) {
-                final span = TextSpan(text: widget.bangumiItem.summary);
-                final tp =
-                    TextPainter(text: span, textDirection: TextDirection.ltr);
-                tp.layout(maxWidth: constraints.maxWidth);
-                final numLines = tp.computeLineMetrics().length;
-                if (numLines > 7) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      SizedBox(
-                        height: fullIntro ? null : 120,
-                        width: MediaQuery.sizeOf(context).width > maxWidth
-                            ? maxWidth
-                            : MediaQuery.sizeOf(context).width - 32,
-                        child: SelectableText(
-                          widget.bangumiItem.summary,
-                          textAlign: TextAlign.start,
-                          scrollBehavior: const ScrollBehavior().copyWith(
-                            scrollbars: false,
-                          ),
-                          scrollPhysics: NeverScrollableScrollPhysics(),
-                          selectionHeightStyle: ui.BoxHeightStyle.max,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            fullIntro = !fullIntro;
-                          });
-                        },
-                        child: Text(fullIntro ? '加载更少' : '加载更多'),
-                      ),
-                    ],
-                  );
-                } else {
-                  return SelectableText(
-                    widget.bangumiItem.summary,
-                    textAlign: TextAlign.start,
-                    scrollPhysics: NeverScrollableScrollPhysics(),
-                    selectionHeightStyle: ui.BoxHeightStyle.max,
-                  );
-                }
-              }),
-              const SizedBox(height: 16),
-              Text('标签', style: TextStyle(fontSize: 18)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8.0,
-                runSpacing: isDesktop() ? 8 : 0,
-                children: List<Widget>.generate(
-                    fullTag || widget.bangumiItem.tags.length < 13
-                        ? widget.bangumiItem.tags.length
-                        : 13, (int index) {
-                  if (!fullTag && index == 12) {
-                    return ActionChip(
-                      label: Text(
-                        '更多 +',
-                        style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary),
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          fullTag = !fullTag;
-                        });
-                      },
-                    );
-                  }
-                  return ActionChip(
-                    label: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('${widget.bangumiItem.tags[index].name} '),
-                        Text(
-                          '${widget.bangumiItem.tags[index].count}',
-                          style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary),
-                        ),
-                      ],
+              if (wide)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: overviewContent),
+                    const SizedBox(width: 20),
+                    SizedBox(
+                      width: 280,
+                      child:
+                          BangumiAirInfoCard(bangumiItem: widget.bangumiItem),
                     ),
-                    onPressed: () {
-                      final tagName = Uri.encodeComponent(
-                          widget.bangumiItem.tags[index].name);
-                      context.pushNamed('/search/$tagName');
-                    },
-                  );
-                }).toList(),
-              ),
+                  ],
+                )
+              else
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    BangumiAirInfoCard(bangumiItem: widget.bangumiItem),
+                    const SizedBox(height: 20),
+                    overviewContent,
+                  ],
+                ),
+              if (widget.episodesLoading || widget.episodes.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Text('剧集', style: TextStyle(fontSize: 18)),
+                    const SizedBox(width: 8),
+                    if (widget.episodes.isNotEmpty)
+                      Text(
+                        '共 $mainEpisodeCount 话',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                BangumiEpisodeGrid(
+                  episodes: widget.episodes,
+                  watchedEpisode: widget.watchedEpisode,
+                  isLoading: widget.episodesLoading,
+                ),
+              ],
             ],
           ),
         ),

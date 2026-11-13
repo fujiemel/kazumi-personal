@@ -10,6 +10,7 @@ import 'package:kazumi/repositories/download_repository.dart';
 import 'package:kazumi/repositories/danmaku_shield_repository.dart';
 import 'package:kazumi/repositories/history_repository.dart';
 import 'package:kazumi/repositories/search_history_repository.dart';
+import 'package:kazumi/services/bangumi/bangumi_episode_cache.dart';
 import 'package:kazumi/services/download/download_manager.dart';
 import 'package:kazumi/services/player/audio_controller.dart';
 import 'package:kazumi/services/player/history_playback_service.dart';
@@ -37,6 +38,7 @@ final coreModule = createModule(
       ..addSingleton<AudioController>(AudioController.new)
       ..addSingleton<HistoryPlaybackService>(HistoryPlaybackService.new)
       ..addSingleton<ShaderAssetService>(ShaderAssetService.new)
+      ..addSingleton<BangumiEpisodeCache>(BangumiEpisodeCache.new)
       ..addSingleton<WebDav>(WebDav.new)
       ..addSingleton<DanmakuShieldSyncService>(DanmakuShieldSyncService.new)
       // Cross-feature state and coordinators.

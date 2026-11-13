@@ -123,6 +123,8 @@ abstract class _InfoController with Store {
       bangumiItem.rank = value.rank;
       bangumiItem.airDate = value.airDate;
       bangumiItem.airWeekday = value.airWeekday;
+      bangumiItem.airTime = value.airTime;
+      bangumiItem.totalEpisodes = value.totalEpisodes;
       bangumiItem.alias = value.alias;
       bangumiItem.ratingScore = value.ratingScore;
       bangumiItem.votes = value.votes;

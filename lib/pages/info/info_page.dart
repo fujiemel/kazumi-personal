@@ -14,16 +14,21 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/pages/info/info_actions_menu.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/info/info_tabview.dart';
 import 'package:kazumi/pages/info/rating_review_dialog.dart';
 import 'package:kazumi/pages/info/source_sheet.dart';
+import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:kazumi/request/apis/bangumi_api.dart';
+import 'package:kazumi/services/bangumi/bangumi_episode_cache.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/platform/desktop_window_config.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/utils/history_lookup.dart';
 
 class InfoPage extends StatefulWidget {
   const InfoPage({
@@ -67,6 +72,11 @@ class _InfoPageState extends State<InfoPage>
   bool staffQueryTimeout = false;
   bool staffIsEmpty = false;
   bool _showBangumiInfoSkeleton = false;
+  List<EpisodeInfo> episodeList = [];
+  bool episodesLoading = false;
+  bool episodesHasLoaded = false;
+  final BangumiEpisodeCache _episodeCache = inject<BangumiEpisodeCache>();
+  final HistoryController _historyController = inject<HistoryController>();
 
   bool get _isShowingBangumiInfoSkeleton =>
       infoController.isLoading || _showBangumiInfoSkeleton;
@@ -145,6 +155,42 @@ class _InfoPageState extends State<InfoPage>
     }
   }
 
+  Future<void> loadEpisodes() async {
+    if (episodesLoading || episodesHasLoaded) return;
+    final subjectId = infoController.bangumiItem.id;
+    final cached = _episodeCache.get(subjectId);
+    if (cached != null) {
+      setState(() {
+        episodeList = cached;
+        episodesLoading = false;
+        episodesHasLoaded = true;
+      });
+      return;
+    }
+    episodesLoading = true;
+    try {
+      final episodes = await BangumiApi.getBangumiEpisodesByID(subjectId).timeout(
+        const Duration(seconds: 12),
+        onTimeout: () => <EpisodeInfo>[],
+      );
+      _episodeCache.put(subjectId, episodes);
+      if (mounted) {
+        setState(() {
+          episodeList = episodes;
+          episodesLoading = false;
+          episodesHasLoaded = true;
+        });
+      }
+    } catch (e) {
+      KazumiLogger().e('InfoPage: failed to load episodes', error: e);
+      if (mounted) {
+        setState(() {
+          episodesLoading = false;
+        });
+      }
+    }
+  }
+
   Future<void> loadMoreComments({bool loadMore = false}) async {
     if (commentsIsLoading) return;
     setState(() {
@@ -213,6 +259,9 @@ class _InfoPageState extends State<InfoPage>
     infoController.staffList.clear();
     infoController.clearRelations();
     infoController.pluginSearchResponseList.clear();
+    episodeList = [];
+    episodesLoading = false;
+    episodesHasLoaded = false;
     if (_needsBangumiInfoRefresh(infoController.bangumiItem)) {
       _showBangumiInfoSkeleton = true;
       _loadBangumiInfo();
@@ -220,6 +269,8 @@ class _InfoPageState extends State<InfoPage>
     infoTabController = TabController(length: _infoTabs.length, vsync: this);
     showRating = GStorage.getSetting(SettingsKeys.showRating);
     infoTabController.addListener(onInfoTabChanged);
+    _historyController.init();
+    loadEpisodes();
   }
 
   void onInfoTabChanged() {
@@ -442,6 +493,11 @@ class _InfoPageState extends State<InfoPage>
         },
         body: Observer(builder: (context) {
           final showBangumiInfoSkeleton = _isShowingBangumiInfoSkeleton;
+          final latestHistories =
+              latestHistoryByBangumi(_historyController.histories);
+          final watchedEpisode =
+              latestHistories[infoController.bangumiItem.id]?.lastWatchEpisode ??
+                  0;
           return InfoTabView(
             tabController: infoTabController,
             bangumiItem: infoController.bangumiItem,
@@ -464,6 +520,9 @@ class _InfoPageState extends State<InfoPage>
             relationsQueryTimeout: infoController.relationsQueryTimeout,
             relationsHasLoaded: infoController.relationsHasLoaded,
             loadRelations: loadRelations,
+            episodes: episodeList,
+            episodesLoading: episodesLoading,
+            watchedEpisode: watchedEpisode,
             isLoading: showBangumiInfoSkeleton,
           );
         }),

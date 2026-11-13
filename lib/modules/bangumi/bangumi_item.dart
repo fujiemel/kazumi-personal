@@ -37,6 +37,10 @@ class BangumiItem {
   List<int> votesCount;
   @HiveField(14, defaultValue: '')
   String info;
+  @HiveField(15, defaultValue: 0)
+  int totalEpisodes;
+  @HiveField(16, defaultValue: '')
+  String airTime;
   // Calendar metadata is separate from counted user tags and is not persisted.
   final List<String> metaTags;
   BangumiInterest? interest;
@@ -58,6 +62,8 @@ class BangumiItem {
     required this.votesCount,
     required this.info,
     this.metaTags = const [],
+    this.airTime = '',
+    this.totalEpisodes = 0,
     this.interest,
   });
 
@@ -124,6 +130,30 @@ class BangumiItem {
 
     final String airDateStr = resolveAirDateString(json);
 
+    String resolveAirTimeString(Map<String, dynamic> jsonData) {
+      final airtime = jsonData['airtime'];
+      if (airtime is Map) {
+        final time = airtime['time']?.toString().trim();
+        if (time != null && time.isNotEmpty) return time;
+      }
+      if (airtime is String && airtime.trim().isNotEmpty) {
+        final match = RegExp(r'(\d{1,2}:\d{2})').firstMatch(airtime);
+        if (match != null) return match.group(1)!;
+        return airtime.trim();
+      }
+      final time = jsonData['time']?.toString().trim();
+      return (time == null || time.isEmpty) ? '' : time;
+    }
+
+    int resolveTotalEpisodes(Map<String, dynamic> jsonData) {
+      final eps = jsonData['eps'];
+      final total = jsonData['total_episodes'];
+      final raw = (eps is num && eps > 0) ? eps : total;
+      if (raw is num) return raw.toInt();
+      if (raw is String) return int.tryParse(raw) ?? 0;
+      return 0;
+    }
+
     final rawTags = json['tags'] as List? ?? [];
     final tagList = rawTags.map((tag) => BangumiTag.fromJson(tag)).toList();
     final rawMetaTags = json['metaTags'];
@@ -164,6 +194,8 @@ class BangumiItem {
       votes: json['rating']['total'] ?? 0,
       votesCount: parseBangumiVoteCount(json),
       info: json['info'] ?? '',
+      airTime: resolveAirTimeString(json),
+      totalEpisodes: resolveTotalEpisodes(json),
       metaTags: rawMetaTags is List
           ? rawMetaTags
               .whereType<String>()
