@@ -218,12 +218,20 @@ class _CollectListTile extends StatelessWidget {
     required this.showRating,
     required this.onOpen,
     required this.onChangeType,
+    required this.onSelectSource,
+    required this.stackActions,
+    this.history,
+    this.onResume,
   });
 
   final CollectedBangumi entry;
   final bool showRating;
   final VoidCallback onOpen;
   final ValueChanged<CollectType>? onChangeType;
+  final VoidCallback onSelectSource;
+  final bool stackActions;
+  final History? history;
+  final VoidCallback? onResume;
 
   @override
   Widget build(BuildContext context) {
@@ -231,90 +239,175 @@ class _CollectListTile extends StatelessWidget {
     final colors = theme.colorScheme;
     final item = entry.bangumiItem;
     final title = CollectLibraryQuery.titleOf(entry);
-    final airDate = DateTime.tryParse(item.airDate);
-    final metadata = [
-      if (airDate != null) '${airDate.year} 年',
-      if (showRating && item.ratingScore > 0)
-        '${item.ratingScore.toStringAsFixed(1)} 分',
-    ];
+    final type = CollectType.fromValue(entry.type);
+    final total = item.totalEpisodes;
+    final watched = history?.lastWatchEpisode ?? 0;
+    final progress = watched > 0
+        ? '看到第 ${watched.toString().padLeft(2, '0')} 集${total > 0 ? ' · 全 $total 话' : ''}'
+        : '未开始${total > 0 ? ' · 全 $total 话' : ''}';
+    final update = nextAiringLabel(
+      airDate: item.airDate,
+      airWeekday: item.airWeekday,
+      airTime: item.airTime,
+    );
+    final rating = showRating && item.ratingScore > 0
+        ? '${item.ratingScore.toStringAsFixed(1)} 分'
+        : null;
+    final year = DateTime.tryParse(item.airDate)?.year;
+    final meta = [
+      if (year != null) '$year 年',
+      ?rating,
+      type.label,
+    ].join(' · ');
 
     return Material(
       color: colors.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(20),
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          // Isolate menu focus and taps from card navigation.
+          // Keep menu and action focus outside the card's navigation tap area.
           Positioned.fill(
             child: Semantics(
               button: true,
-              label: [title, ...metadata].join('，'),
+              label: [
+                title,
+                progress,
+                ?update,
+                meta,
+              ].join('，'),
               child: InkWell(onTap: onOpen),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 16, 8),
+            padding: const EdgeInsets.all(14),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ExcludeSemantics(
                   child: IgnorePointer(
                     child: SizedBox(
-                      width: 80,
-                      height: 120,
+                      width: 86,
+                      height: 128,
                       child: _CollectCover(
                         item: item,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      ExcludeSemantics(
-                        child: IgnorePointer(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(minHeight: 76),
-                            child: Padding(
-                              padding: const EdgeInsets.only(top: 4, bottom: 8),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    title,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style:
-                                        theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      height: 1.35,
-                                    ),
-                                  ),
-                                  if (metadata.isNotEmpty)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 8),
-                                      child: Text(
-                                        metadata.join('  ·  '),
-                                        style:
-                                            theme.textTheme.bodySmall?.copyWith(
-                                          color: colors.onSurfaceVariant,
-                                        ),
-                                      ),
-                                    ),
-                                ],
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: ExcludeSemantics(
+                              child: Text(
+                                title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.35,
+                                ),
                               ),
                             ),
                           ),
+                          const SizedBox(width: 4),
+                          _CollectEntryMenu(
+                            entry: entry,
+                            onChanged: onChangeType,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ExcludeSemantics(
+                        child: Text(
+                          progress,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colors.onSurface,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
-                      _CollectEntryMenu(
-                        entry: entry,
-                        onChanged: onChangeType,
-                        showStatusLabel: true,
+                      if (update != null) ...[
+                        const SizedBox(height: 3),
+                        ExcludeSemantics(
+                          child: Text(
+                            update,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colors.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 3),
+                      ExcludeSemantics(
+                        child: Text(
+                          meta,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      _buildActions(
+                        selectButton: TextButton.icon(
+                          onPressed: onSelectSource,
+                          style: TextButton.styleFrom(
+                            minimumSize: const Size(0, 40),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                          ),
+                          icon: const Icon(
+                            Icons.format_list_bulleted_rounded,
+                            size: 18,
+                          ),
+                          label: const Text('选集'),
+                        ),
+                        playButton: onResume != null
+                            ? FilledButton.tonalIcon(
+                                onPressed: onResume,
+                                style: FilledButton.styleFrom(
+                                  minimumSize: const Size(0, 40),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                  ),
+                                ),
+                                icon: const Icon(
+                                  Icons.play_arrow_rounded,
+                                  size: 18,
+                                ),
+                                label: Text(
+                                  watched > 0
+                                      ? '继续观看 ${watched.toString().padLeft(2, '0')}'
+                                      : '继续观看',
+                                ),
+                              )
+                            : FilledButton.tonalIcon(
+                                onPressed: onOpen,
+                                style: FilledButton.styleFrom(
+                                  minimumSize: const Size(0, 40),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                  ),
+                                ),
+                                icon: const Icon(
+                                  Icons.play_arrow_rounded,
+                                  size: 18,
+                                ),
+                                label: const Text('开始观看'),
+                              ),
                       ),
                     ],
                   ),
@@ -324,6 +417,30 @@ class _CollectListTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildActions({
+    required Widget selectButton,
+    required Widget playButton,
+  }) {
+    if (stackActions) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          selectButton,
+          const SizedBox(height: 6),
+          playButton,
+        ],
+      );
+    }
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        selectButton,
+        const SizedBox(width: 8),
+        playButton,
+      ],
     );
   }
 }
@@ -356,11 +473,9 @@ class _CollectEntryMenu extends StatelessWidget {
   const _CollectEntryMenu({
     required this.entry,
     required this.onChanged,
-    this.showStatusLabel = false,
   });
   final CollectedBangumi entry;
   final ValueChanged<CollectType>? onChanged;
-  final bool showStatusLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -371,7 +486,7 @@ class _CollectEntryMenu extends StatelessWidget {
       enabled: onChanged != null,
       style: MenuStyle(
         shape: WidgetStatePropertyAll(RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(showStatusLabel ? 16 : 20),
+          borderRadius: BorderRadius.circular(20),
         )),
       ),
       menuChildren: [
@@ -393,32 +508,16 @@ class _CollectEntryMenu extends StatelessWidget {
         ),
       ],
       builder: (context, toggle) {
-        return showStatusLabel
-            ? Tooltip(
-                message: '调整《$title》的观看状态',
-                child: FilledButton.tonalIcon(
-                  style: FilledButton.styleFrom(
-                    visualDensity: VisualDensity.standard,
-                    tapTargetSize: MaterialTapTargetSize.padded,
-                    minimumSize: const Size(0, 40),
-                    padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 12, 0),
-                  ),
-                  onPressed: toggle,
-                  iconAlignment: IconAlignment.end,
-                  icon: const Icon(Icons.expand_more_rounded, size: 18),
-                  label: Text(type.label),
-                ),
-              )
-            : IconButton(
-                tooltip: '管理《$title》 · ${type.label}',
-                onPressed: toggle,
-                style: IconButton.styleFrom(
-                  foregroundColor: colors.onSurfaceVariant,
-                  minimumSize: const Size(48, 48),
-                  visualDensity: VisualDensity.standard,
-                ),
-                icon: const Icon(Icons.more_horiz_rounded, size: 20),
-              );
+        return IconButton(
+          tooltip: '管理《$title》 · ${type.label}',
+          onPressed: toggle,
+          style: IconButton.styleFrom(
+            foregroundColor: colors.onSurfaceVariant,
+            minimumSize: const Size(48, 48),
+            visualDensity: VisualDensity.standard,
+          ),
+          icon: const Icon(Icons.more_horiz_rounded, size: 20),
+        );
       },
     );
   }

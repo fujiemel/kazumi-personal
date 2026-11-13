@@ -8,7 +8,9 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_layout.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
+import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/pages/collect/collect_library_query.dart';
+import 'package:kazumi/utils/air_schedule.dart';
 
 part 'collect_library_card.dart';
 part 'collect_library_controls.dart';
@@ -32,6 +34,9 @@ class CollectLibraryView extends StatefulWidget {
     required this.canEdit,
     required this.layout,
     required this.onLayoutChanged,
+    required this.histories,
+    required this.onResume,
+    required this.onSelectSource,
   });
 
   final List<CollectedBangumi> entries;
@@ -41,6 +46,9 @@ class CollectLibraryView extends StatefulWidget {
   final bool Function(BangumiItem) canEdit;
   final CollectLayout layout;
   final ValueChanged<CollectLayout> onLayoutChanged;
+  final Map<int, History> histories;
+  final ValueChanged<History> onResume;
+  final ValueChanged<BangumiItem> onSelectSource;
 
   @override
   State<CollectLibraryView> createState() => _CollectLibraryViewState();
@@ -379,17 +387,26 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
     final columns = ((contentWidth + spacing) / (preferredWidth + spacing))
         .ceil()
         .clamp(1, maxColumns);
+    final tileWidth = (contentWidth - spacing * (columns - 1)) / columns;
 
-    Widget tile(int index) => IndexedSemantics(
-          index: index,
-          child: _CollectListTile(
-            key: ValueKey('collect-${entries[index].bangumiItem.id}'),
-            entry: entries[index],
-            showRating: widget.showRating,
-            onOpen: () => widget.onOpen(entries[index].bangumiItem),
-            onChangeType: _changeTypeFor(entries[index]),
-          ),
-        );
+    Widget tile(int index) {
+      final history = widget.histories[entries[index].bangumiItem.id];
+      return IndexedSemantics(
+        index: index,
+        child: _CollectListTile(
+          key: ValueKey('collect-${entries[index].bangumiItem.id}'),
+          entry: entries[index],
+          showRating: widget.showRating,
+          history: history,
+          stackActions: tileWidth < 360,
+          onOpen: () => widget.onOpen(entries[index].bangumiItem),
+          onSelectSource: () =>
+              widget.onSelectSource(entries[index].bangumiItem),
+          onResume: history == null ? null : () => widget.onResume(history),
+          onChangeType: _changeTypeFor(entries[index]),
+        ),
+      );
+    }
 
     return SliverList.builder(
       itemCount: (entries.length + columns - 1) ~/ columns,
