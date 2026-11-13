@@ -78,7 +78,54 @@ void main() {
     expect(find.text('继续观看'), findsNothing);
     expect(find.text('今日更新'), findsNothing);
   });
+
+  testWidgets('shows caught-up status when the latest episode is watched',
+      (tester) async {
+    final now = DateTime.now();
+    final start = now.subtract(const Duration(days: 42));
+    final item = _item(
+      airWeekday: now.weekday,
+      airDate: _date(start),
+    );
+    final history = History(
+      item,
+      7,
+      'plugin',
+      now,
+      'https://example.com/source',
+      '第 7 话',
+    );
+    final entry = CollectedBangumi(
+      item,
+      now,
+      CollectType.watching.value,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: PopularHomeSections(
+              histories: [history],
+              collectibles: [entry],
+              onResume: _noopResume,
+              onOpen: _noopOpen,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.textContaining('已看完 07'), findsOneWidget);
+    expect(find.byIcon(Icons.schedule_rounded), findsOneWidget);
+  });
 }
+
+String _date(DateTime date) =>
+    '${date.year.toString().padLeft(4, '0')}-'
+    '${date.month.toString().padLeft(2, '0')}-'
+    '${date.day.toString().padLeft(2, '0')}';
 
 void _noopResume(History history) {}
 void _noopOpen(BangumiItem item) {}
