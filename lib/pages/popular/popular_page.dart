@@ -1,11 +1,21 @@
+import 'dart:async';
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/bangumi_mirror_error_widget.dart';
 import 'package:kazumi/bean/widget/kazumi_menu.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/history/history_module.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
+import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
+import 'package:kazumi/pages/popular/popular_home_sections.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
+import 'package:kazumi/services/player/history_playback_service.dart';
+import 'package:kazumi/services/plugin/rule_engine_models.dart'
+    show RuleCancelToken;
 import 'package:kazumi/utils/constants.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:window_manager/window_manager.dart';
@@ -13,6 +23,7 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/platform/desktop_window_config.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/utils/history_lookup.dart';
 
 class PopularPage extends StatefulWidget {
   const PopularPage({
@@ -26,13 +37,19 @@ class PopularPage extends StatefulWidget {
   State<PopularPage> createState() => _PopularPageState();
 }
 
-class _PopularPageState extends State<PopularPage> {
+class _PopularPageState extends State<PopularPage> with KazumiDialogOwner {
   late final ScrollController scrollController;
   PopularController get popularController => widget.controller;
+  final HistoryController _historyController = inject<HistoryController>();
+  final CollectController _collectController = inject<CollectController>();
+  final HistoryPlaybackService _playbackService =
+      inject<HistoryPlaybackService>();
 
   @override
   void initState() {
     super.initState();
+    _historyController.init();
+    _collectController.loadCollectibles();
     scrollController = ScrollController(
       initialScrollOffset: popularController.scrollOffset,
     );
@@ -64,6 +81,26 @@ class _PopularPageState extends State<PopularPage> {
     }
   }
 
+  Future<void> _resume(History history) async {
+    if (dialogs.isRunning) return;
+    await dialogs.run((task) async {
+      final cancelToken = RuleCancelToken();
+      final result = await task.loading(
+        message: '获取播放源',
+        barrierDismissible: isDesktop(),
+        onCancel: cancelToken.cancel,
+        action: () => _playbackService.open(history, cancelToken: cancelToken),
+      );
+      switch (result) {
+        case HistoryPlaybackReady(:final args):
+          task.withContext(
+              (context) => context.pushNamed('/video/', arguments: args));
+        case HistoryPlaybackUnavailable(:final reason):
+          KazumiDialog.showToast(message: reason);
+      }
+    }, errorMessage: '暂时无法继续播放，请稍后重试');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -71,6 +108,21 @@ class _PopularPageState extends State<PopularPage> {
         controller: scrollController,
         slivers: [
           buildSliverAppBar(),
+          SliverToBoxAdapter(
+            child: Observer(
+              builder: (_) {
+                final latest =
+                    latestHistoryByBangumi(_historyController.histories);
+                return PopularHomeSections(
+                  histories: latest.values.toList(),
+                  collectibles: _collectController.collectibles.toList(),
+                  onResume: (history) => unawaited(_resume(history)),
+                  onOpen: (item) =>
+                      context.pushNamed('/info/', arguments: item),
+                );
+              },
+            ),
+          ),
           SliverToBoxAdapter(
             child: Observer(
               builder: (_) => AnimatedOpacity(
