@@ -7,6 +7,7 @@ import 'package:scrollview_observer/scrollview_observer.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/modules/roads/road_module.dart';
+import 'package:kazumi/utils/media.dart';
 
 class EpisodeSelectionPanel extends StatefulWidget {
   const EpisodeSelectionPanel({
@@ -45,34 +46,119 @@ class EpisodeSelectionPanelState extends State<EpisodeSelectionPanel> {
         ..cacheJumpIndexOffset = false;
   late int _visibleRoad = widget.selectedRoad;
 
-  bool get _canLocate =>
-      widget.selectedRoad >= 0 &&
-      widget.selectedRoad < widget.roads.length &&
-      widget.selectedEpisode > 0 &&
-      widget.selectedEpisode <= widget.roads[widget.selectedRoad].data.length;
+  int _roadEpisodeCount(Road road) =>
+      math.min(road.data.length, road.identifier.length);
+
+  List<_EpisodeEntry> get _catalog {
+    final entries = <_EpisodeEntry>[];
+    for (var roadIndex = 0; roadIndex < widget.roads.length; roadIndex++) {
+      final road = widget.roads[roadIndex];
+      final count = _roadEpisodeCount(road);
+      final parsedByIndex = <int, int>{};
+      for (var index = 0; index < count; index++) {
+        final identifier = road.identifier[index].trim();
+        final parsed = extractEpisodeNumber(identifier);
+        if (parsed > 0) parsedByIndex[index] = parsed;
+      }
+      final parsedNumbers = parsedByIndex.values.toSet();
+      final used = <int>{};
+      for (var index = 0; index < count; index++) {
+        final identifier = road.identifier[index].trim();
+        final parsed = parsedByIndex[index];
+        final displayNumber = parsed ?? (index + 1);
+        var canonical = displayNumber;
+        final collides = used.contains(canonical) ||
+            (parsed == null && parsedNumbers.contains(canonical));
+        if (collides) {
+          // Duplicate/unsortable identifiers must not collapse into one row.
+          canonical = 100000 + roadIndex * 10000 + index;
+        }
+        used.add(canonical);
+        entries.add(
+          _EpisodeEntry(
+            canonical: canonical,
+            displayNumber: displayNumber,
+            roadIndex: roadIndex,
+            listIndex: index + 1,
+            name: identifier.isNotEmpty ? identifier : '第$displayNumber集',
+          ),
+        );
+      }
+    }
+    return entries;
+  }
+
+  int get _currentCanonical {
+    for (final entry in _catalog) {
+      if (entry.roadIndex == widget.selectedRoad &&
+          entry.listIndex == widget.selectedEpisode) {
+        return entry.canonical;
+      }
+    }
+    return widget.selectedEpisode;
+  }
+
+  _EpisodeEntry _entryFor(int canonical, {int? preferredRoad}) {
+    final road = preferredRoad ?? widget.selectedRoad;
+    final matches =
+        _catalog.where((entry) => entry.canonical == canonical).toList();
+    for (final entry in matches) {
+      if (entry.roadIndex == road) return entry;
+    }
+    return matches.first;
+  }
+
+  _EpisodeEntry _nearestEntry(List<_EpisodeEntry> entries, int canonical) {
+    final sorted = [...entries]
+      ..sort((a, b) => a.displayNumber.compareTo(b.displayNumber));
+    for (final entry in sorted) {
+      if (entry.displayNumber >= canonical) return entry;
+    }
+    return sorted.last;
+  }
+
+  bool get _canLocate {
+    final current = _currentCanonical;
+    return _catalog.any((entry) => entry.canonical == current);
+  }
 
   double get _toolbarHeight =>
       math.max(56, MediaQuery.textScalerOf(context).scale(20) + 8);
 
   void _selectRoad(int road) {
-    if (_visibleRoad == road) return;
+    if (road < 0 || road >= widget.roads.length) return;
+    final current = _currentCanonical;
+    final candidates =
+        _catalog.where((entry) => entry.roadIndex == road).toList();
+    if (candidates.isEmpty) return;
+    _EpisodeEntry? exact;
+    for (final entry in candidates) {
+      if (entry.canonical == current) {
+        exact = entry;
+        break;
+      }
+    }
+    final target = exact ?? _nearestEntry(candidates, current);
     setState(() => _visibleRoad = road);
-    if (_scrollController.hasClients) _scrollController.jumpTo(0);
+    if (road == widget.selectedRoad &&
+        target.listIndex == widget.selectedEpisode) {
+      return;
+    }
+    widget.onEpisodeSelected(target.listIndex, road);
   }
 
   Future<void> revealCurrentEpisode() async {
     if (!_canLocate) return;
-    setState(() => _visibleRoad = widget.selectedRoad);
-    // Wait for the observer to bind the new road's sliver after layout.
     await WidgetsBinding.instance.endOfFrame;
-    if (!mounted ||
-        !_scrollController.hasClients ||
-        !_canLocate ||
-        _visibleRoad != widget.selectedRoad) {
+    if (!mounted || !_scrollController.hasClients || !_canLocate) {
       return;
     }
 
-    final index = widget.selectedEpisode - 1;
+    final current = _currentCanonical;
+    final canonicals =
+        _catalog.map((entry) => entry.canonical).toSet().toList()..sort();
+    final index = canonicals.indexOf(current);
+    if (index < 0) return;
     final toolbarHeight = _toolbarHeight;
     final item = _observerController.observeItem(index: index);
     if (item != null) {
@@ -91,6 +177,14 @@ class EpisodeSelectionPanelState extends State<EpisodeSelectionPanel> {
   }
 
   @override
+  void didUpdateWidget(covariant EpisodeSelectionPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedRoad != widget.selectedRoad) {
+      _visibleRoad = widget.selectedRoad;
+    }
+  }
+
+  @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
@@ -100,10 +194,11 @@ class EpisodeSelectionPanelState extends State<EpisodeSelectionPanel> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final road = _visibleRoad >= 0 && _visibleRoad < widget.roads.length
-        ? widget.roads[_visibleRoad]
-        : null;
-    final count = road?.data.length ?? 0;
+    final catalog = _catalog;
+    final canonicals =
+        catalog.map((entry) => entry.canonical).toSet().toList()..sort();
+    final count = canonicals.length;
+    final currentCanonical = _currentCanonical;
 
     return LayoutBuilder(builder: (context, constraints) {
       final textScaler = MediaQuery.textScalerOf(context);
@@ -191,7 +286,7 @@ class EpisodeSelectionPanelState extends State<EpisodeSelectionPanel> {
                   hasScrollBody: false,
                   child: GeneralEmptyState(
                     icon: Icons.video_library_outlined,
-                    title: '这条线路暂无剧集',
+                    title: '暂无可播放剧集',
                   ),
                 )
               else
@@ -205,24 +300,27 @@ class EpisodeSelectionPanelState extends State<EpisodeSelectionPanel> {
                   sliver: SliverList.builder(
                     itemCount: count,
                     itemBuilder: (context, index) {
-                      final episode = index + 1;
-                      final name = index < road!.identifier.length &&
-                              road.identifier[index].trim().isNotEmpty
-                          ? road.identifier[index]
-                          : '第$episode集';
+                      final canonical = canonicals[index];
+                      final entry = _entryFor(canonical);
+                      final road = widget.roads[entry.roadIndex];
+                      final dataUrl = entry.listIndex - 1 < road.data.length
+                          ? road.data[entry.listIndex - 1]
+                          : null;
                       return _EpisodeRow(
-                        key: ValueKey('$_visibleRoad:$episode'),
-                        name: name,
+                        key: ValueKey('episode:${entry.canonical}'),
+                        name: entry.name,
                         first: index == 0,
                         last: index == count - 1,
-                        selected: _visibleRoad == widget.selectedRoad &&
-                            episode == widget.selectedEpisode,
+                        selected: canonical == currentCanonical,
                         isPlaying: widget.isPlaying,
                         isOffline: widget.isOffline,
-                        download: widget.downloads[road.data[index]],
+                        download:
+                            dataUrl == null ? null : widget.downloads[dataUrl],
                         disableAnimations: widget.disableAnimations,
-                        onTap: () =>
-                            widget.onEpisodeSelected(episode, _visibleRoad),
+                        onTap: () => widget.onEpisodeSelected(
+                          entry.listIndex,
+                          entry.roadIndex,
+                        ),
                       );
                     },
                   ),
@@ -233,6 +331,22 @@ class EpisodeSelectionPanelState extends State<EpisodeSelectionPanel> {
       );
     });
   }
+}
+
+class _EpisodeEntry {
+  const _EpisodeEntry({
+    required this.canonical,
+    required this.displayNumber,
+    required this.roadIndex,
+    required this.listIndex,
+    required this.name,
+  });
+
+  final int canonical;
+  final int displayNumber;
+  final int roadIndex;
+  final int listIndex;
+  final String name;
 }
 
 class _EpisodeToolbar extends SliverPersistentHeaderDelegate {
@@ -291,9 +405,9 @@ class _RoadSelectorState extends State<_RoadSelector> {
 
   String _name(int index) => index >= 0 && index < widget.roads.length
       ? (widget.roads[index].name.trim().isEmpty
-          ? '播放线路 ${index + 1}'
+          ? '播放来源 ${index + 1}'
           : widget.roads[index].name)
-      : '暂无线路';
+      : '暂无来源';
 
   void _toggleMenu(MenuController controller) {
     final pointerActivation = _pointerActivation;
@@ -336,7 +450,6 @@ class _RoadSelectorState extends State<_RoadSelector> {
   Widget _buildMenuItem(int index, double width) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final road = widget.roads[index];
     final selected = index == widget.visibleRoad;
     final last = index == widget.roads.length - 1;
     return Padding(
@@ -348,9 +461,9 @@ class _RoadSelectorState extends State<_RoadSelector> {
           key: ValueKey('road-option-$index'),
           onPressed: () => widget.onChanged(index),
           style: ButtonStyle(
-            minimumSize: WidgetStatePropertyAll(Size(width, 56)),
+            minimumSize: WidgetStatePropertyAll(Size(width, 48)),
             padding: const WidgetStatePropertyAll(
-                EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+                EdgeInsets.symmetric(horizontal: 16, vertical: 10)),
             visualDensity: VisualDensity.standard,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             backgroundColor: WidgetStatePropertyAll(
@@ -373,22 +486,7 @@ class _RoadSelectorState extends State<_RoadSelector> {
                     ),
             )),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(_name(index), maxLines: 2, overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 4),
-              Text(
-                '${road.data.length} 集',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: selected
-                      ? colors.onSecondaryContainer
-                      : colors.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
+          child: Text(_name(index), maxLines: 2, overflow: TextOverflow.ellipsis),
         ),
       ),
     );
@@ -432,7 +530,7 @@ class _RoadSelectorState extends State<_RoadSelector> {
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
             child: Text(
-              '选择播放线路',
+              '选择播放来源',
               style: theme.textTheme.labelLarge?.copyWith(
                 color: colors.onSurfaceVariant,
               ),
@@ -448,7 +546,7 @@ class _RoadSelectorState extends State<_RoadSelector> {
           return Semantics(
             button: canSwitch,
             expanded: canSwitch ? open : null,
-            label: canSwitch ? '切换播放线路' : null,
+            label: canSwitch ? '切换播放来源' : null,
             child: Material(
               animationDuration: duration,
               color:
@@ -469,7 +567,7 @@ class _RoadSelectorState extends State<_RoadSelector> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              widget.isOffline ? '离线观看' : '播放线路',
+                              widget.isOffline ? '离线观看' : '播放来源',
                               style: theme.textTheme.labelMedium
                                   ?.copyWith(color: foreground),
                             ),
