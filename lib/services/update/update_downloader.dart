@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:kazumi/request/clients/download_http_client.dart';
+import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/request/core/network_exception.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/update/update_download_source.dart';
@@ -13,7 +14,17 @@ String getUpdateDownloadUrlFromAsset(
     UpdateDownloadSource.mirror => 'mirror_download_url',
     UpdateDownloadSource.github => 'browser_download_url',
   }];
-  return url is String ? url.trim() : '';
+  if (url is String && url.trim().isNotEmpty) return url.trim();
+
+  // Personal releases do not provide mirror_download_url. Fall back to the
+  // GitHub asset through the configured proxy.
+  if (source == UpdateDownloadSource.mirror) {
+    final githubUrl = asset?['browser_download_url'];
+    if (githubUrl is String && githubUrl.trim().isNotEmpty) {
+      return '${ApiEndpoints.ghProxyMirror}${githubUrl.trim()}';
+    }
+  }
+  return '';
 }
 
 class UpdateIntegrityException implements Exception {
