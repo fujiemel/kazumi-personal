@@ -50,6 +50,7 @@
 - Gradle 镜像：`dl.google.com` + 阿里 / 腾讯
 - 产物：`../dist/kazumi-2.4.3-arm64-fujiemel.apk`
 - 固定 debug 签名：`android/app/debug.keystore`，保证本地构建和 CI 构建可以覆盖安装
+- 图标：自制 `assets/images/logo/logo_personal.svg`（粉发 + 星星发夹）
 
 ## 构建环境
 

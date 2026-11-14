@@ -52,6 +52,7 @@ Kazumi 原项目说明、平台支持和完整文档见 [README.upstream.md](REA
 
 ### 构建与更新
 - Android `applicationId` 改为 `com.fujiemel.kazumi`，可与官方版共存
+- 自制图标：粉发 + 星星发夹，和官方版一眼区分
 - Gradle 使用 Google / 阿里 / 腾讯镜像
 - **应用内更新源改为本仓库的 GitHub Releases**
   - 检查更新：`https://api.github.com/repos/fujiemel/kazumi-personal/releases/latest`
@@ -98,5 +99,6 @@ flutter build apk --release --target-platform android-arm64
 
 - 代码基于 Kazumi，遵循 **GPL-3.0**，保留原项目版权与许可证。
 - 借鉴的 Animeko 采用 **AGPL-3.0**；本仓库未复制其代码。
-- Kazumi 图标版权归画师 Yuquanaaa，MiSans 字体版权归小米；本仓库仅个人使用，未获得再分发授权。
+- 本仓库使用自制图标（`assets/images/logo/logo_personal.svg`），未使用原项目图标。
+- MiSans 字体版权归小米；本仓库仅个人使用，未获得再分发授权。
 - 本项目不存储、不提供任何视频内容；所有内容来自用户自行配置的第三方来源。
