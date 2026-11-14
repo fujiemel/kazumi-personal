@@ -1,0 +1,71 @@
+# Kazumi 个人改造版
+
+这是基于 [Kazumi](https://github.com/Predidit/Kazumi) 的个人使用版本，参考 Animeko 的详情页、选集与追番体验做了裁剪和增强。仓库只保留在本地，不推送到 GitHub。
+
+## 分支与备份
+
+- 分支：`personal/animeko-style`
+- 标签：`personal-v1`、`personal-v2`
+- 单文件备份：`../kazumi-personal.bundle`
+
+## 主要改动
+
+### 详情页
+- 放送信息卡：放送开始、更新星期、更新时间、话数、下一话倒计时
+- 剧集网格：已放送 / 下一话 / 未放送 / 已看状态
+- 剧集列表缓存（30 分钟 TTL）
+- `totalEpisodes`、`airTime` 持久化到 Hive
+
+### 追番页
+- Animeko 风格横向卡片
+- 显示看到第几集、总集数、更新时间
+- 已看完时显示下一话更新倒计时
+- 「选集」打开播放来源选择
+- 「继续观看」先选来源，再按同一集号/进度恢复
+- 窄卡片时按钮上下排列，避免桌面端挤压
+
+### 推荐页
+- 顶部「继续观看」
+- 「今日更新」
+- 已看完时显示「还有 X 天更新」
+
+### 播放页
+- 不同线路共用一套集数
+- 按解析出的集号对齐，而不是按列表索引
+- 切线路时自动找同一集号
+- 继续观看支持跨来源恢复同一集和播放进度
+
+### 构建
+- Android `applicationId`：`com.fujiemel.kazumi`，可与官方版共存
+- Gradle 镜像：`dl.google.com` + 阿里 / 腾讯
+- 产物：`../dist/kazumi-2.4.3-arm64-fujiemel.apk`
+
+## 构建环境
+
+- Flutter 3.47.9
+- OpenJDK 21
+- Android SDK 36 / Build Tools 36
+- NDK 28.2.13676358
+- CMake 3.22.1
+
+```bash
+export JAVA_HOME="$HOME/development/jdk-21.0.2"
+export ANDROID_HOME="$HOME/Android/Sdk"
+export PATH="$HOME/development/flutter/bin:$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$PATH"
+
+flutter pub get
+flutter test
+flutter build apk --release --target-platform android-arm64
+adb install -r build/app/outputs/flutter-apk/app-release.apk
+```
+
+## 已知限制
+
+- 历史记录仍保存“列表索引”；线路集数有偏移时，卡片进度文字可能和规范集号不一致。
+- 当前已播集数是由首播日期按周估算的，遇到停播/拆季会偏乐观。
+- APK 为 arm64-v8a、Debug 签名，仅适合个人安装。
+- 没有 GitHub 远程；用 bundle 做备份。
+
+## 许可证
+
+基于 Kazumi（GPL-3.0）。本仓库保留原项目许可证与版权声明。
