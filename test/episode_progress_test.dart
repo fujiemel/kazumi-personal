@@ -60,9 +60,28 @@ void main() {
     expect(status.label, '已看完 07');
     expect(status.updateLabel, isNotNull);
   });
+
+  test('falls back to weekday when air time is missing', () {
+    final status = episodeProgressStatus(
+      item: _item(
+        airDate: _date(now.subtract(const Duration(days: 42))),
+        airWeekday: (now.weekday % 7) + 1,
+        airTime: '',
+      ),
+      watchedEpisode: 7,
+    );
+
+    expect(status.updateLabel, isNotNull);
+    expect(status.updateLabel, isNot('等待更新'));
+  });
 }
 
-BangumiItem _item({required String airDate, int totalEpisodes = 12}) {
+BangumiItem _item({
+  required String airDate,
+  int totalEpisodes = 12,
+  int? airWeekday,
+  String airTime = '22:00',
+}) {
   return BangumiItem(
     id: 1,
     type: 2,
@@ -70,7 +89,7 @@ BangumiItem _item({required String airDate, int totalEpisodes = 12}) {
     nameCn: '测试',
     summary: '',
     airDate: airDate,
-    airWeekday: DateTime.now().weekday,
+    airWeekday: airWeekday ?? DateTime.now().weekday,
     rank: 0,
     images: const {},
     tags: const [],
@@ -80,7 +99,7 @@ BangumiItem _item({required String airDate, int totalEpisodes = 12}) {
     votesCount: const [],
     info: '',
     totalEpisodes: totalEpisodes,
-    airTime: '22:00',
+    airTime: airTime,
   );
 }
 
