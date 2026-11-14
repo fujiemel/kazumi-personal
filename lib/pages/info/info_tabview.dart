@@ -85,6 +85,7 @@ class _InfoTabViewState extends State<InfoTabView> {
   bool fullTag = false;
 
   Widget get overviewContent {
+    final mainEpisodeCount = widget.episodes.where((e) => e.type == 0).length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -132,7 +133,30 @@ class _InfoTabViewState extends State<InfoTabView> {
             );
           }
         }),
-        const SizedBox(height: 16),
+        if (widget.episodesLoading || widget.episodes.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Text('剧集', style: TextStyle(fontSize: 18)),
+              const SizedBox(width: 8),
+              if (widget.episodes.isNotEmpty)
+                Text(
+                  '共 $mainEpisodeCount 话',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          BangumiEpisodeGrid(
+            episodes: widget.episodes,
+            watchedEpisode: widget.watchedEpisode,
+            isLoading: widget.episodesLoading,
+          ),
+        ],
+        const SizedBox(height: 20),
         Text('标签', style: TextStyle(fontSize: 18)),
         const SizedBox(height: 8),
         Wrap(
@@ -182,7 +206,6 @@ class _InfoTabViewState extends State<InfoTabView> {
 
   Widget get infoBody {
     final wide = MediaQuery.sizeOf(context).width > 900;
-    final mainEpisodeCount = widget.episodes.where((e) => e.type == 0).length;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -215,30 +238,6 @@ class _InfoTabViewState extends State<InfoTabView> {
                     overviewContent,
                   ],
                 ),
-              if (widget.episodesLoading || widget.episodes.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Text('剧集', style: TextStyle(fontSize: 18)),
-                    const SizedBox(width: 8),
-                    if (widget.episodes.isNotEmpty)
-                      Text(
-                        '共 $mainEpisodeCount 话',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color:
-                              Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                BangumiEpisodeGrid(
-                  episodes: widget.episodes,
-                  watchedEpisode: widget.watchedEpisode,
-                  isLoading: widget.episodesLoading,
-                ),
-              ],
             ],
           ),
         ),
