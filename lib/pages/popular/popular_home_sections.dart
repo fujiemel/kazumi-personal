@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
@@ -7,6 +5,7 @@ import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/utils/air_schedule.dart';
+import 'package:kazumi/utils/episode_progress.dart';
 
 /// 推荐页顶部的追番摘要：继续观看 + 今日更新。
 ///
@@ -140,19 +139,13 @@ class _ContinueWatchingCard extends StatelessWidget {
     final colors = theme.colorScheme;
     final item = history.bangumiItem;
     final title = item.nameCn.isEmpty ? item.name : item.nameCn;
-    final total = item.totalEpisodes;
-    final watched = history.lastWatchEpisode;
-    final estimatedAired = _estimatedAiredEpisodes(item);
-    final caughtUp =
-        total > 0 && estimatedAired != null && watched >= estimatedAired;
-    final completed = total > 0 && watched >= total;
-    final progress = caughtUp
-        ? (completed
-            ? '已看完 · 全 $total 话'
-            : '已看完 ${watched.toString().padLeft(2, '0')}')
-        : '看到第 $watched 集${total > 0 ? ' · 全 $total 话' : ''}';
-    final updateText =
-        caughtUp && !completed ? _nextUpdateText(item) : null;
+    final status = episodeProgressStatus(
+      item: item,
+      watchedEpisode: history.lastWatchEpisode,
+    );
+    final caughtUp = status.caughtUp;
+    final progress = status.label;
+    final updateText = status.updateLabel;
 
     return SizedBox(
       width: 138,
@@ -246,35 +239,6 @@ class _ContinueWatchingCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  int? _estimatedAiredEpisodes(BangumiItem item) {
-    final start = DateTime.tryParse(item.airDate);
-    if (start == null) return null;
-    final now = DateTime.now();
-    final startDay = DateTime(start.year, start.month, start.day);
-    final today = DateTime(now.year, now.month, now.day);
-    if (startDay.isAfter(today)) return 0;
-    final estimate = today.difference(startDay).inDays ~/ 7 + 1;
-    if (item.totalEpisodes > 0) {
-      return math.min(estimate, item.totalEpisodes);
-    }
-    return estimate;
-  }
-
-  String _nextUpdateText(BangumiItem item) {
-    final next = nextAiringDate(
-      airWeekday: item.airWeekday,
-      airTime: item.airTime,
-    );
-    if (next == null) return '等待更新';
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final target = DateTime(next.year, next.month, next.day);
-    final days = target.difference(today).inDays;
-    if (days <= 0) return '今天更新';
-    if (days == 1) return '明天更新';
-    return '还有 $days 天更新';
   }
 }
 

@@ -47,11 +47,11 @@ void main() {
     await tester.pump();
 
     expect(find.text('继续观看'), findsOneWidget);
-    expect(find.text('看到第 3 集 · 全 12 话'), findsOneWidget);
+    expect(find.text('看到第 03 集 · 全 12 话'), findsOneWidget);
     expect(find.text('今日更新'), findsOneWidget);
     expect(find.text('全 12 话'), findsOneWidget);
 
-    await tester.tap(find.text('看到第 3 集 · 全 12 话'));
+    await tester.tap(find.text('看到第 03 集 · 全 12 话'));
     await tester.pump();
     expect(resumed, same(history));
 
@@ -120,6 +120,43 @@ void main() {
     expect(find.textContaining('已看完 07'), findsOneWidget);
     expect(find.byIcon(Icons.schedule_rounded), findsOneWidget);
   });
+
+  testWidgets('shows caught-up status without total episode count',
+      (tester) async {
+    final now = DateTime.now();
+    final start = now.subtract(const Duration(days: 42));
+    final item = _item(
+      airWeekday: now.weekday,
+      airDate: _date(start),
+      totalEpisodes: 0,
+    );
+    final history = History(
+      item,
+      7,
+      'plugin',
+      now,
+      'https://example.com/source',
+      '第 7 话',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: PopularHomeSections(
+              histories: [history],
+              collectibles: const [],
+              onResume: _noopResume,
+              onOpen: _noopOpen,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('已看完 07'), findsOneWidget);
+  });
 }
 
 String _date(DateTime date) =>
@@ -130,7 +167,11 @@ String _date(DateTime date) =>
 void _noopResume(History history) {}
 void _noopOpen(BangumiItem item) {}
 
-BangumiItem _item({required int airWeekday, required String airDate}) {
+BangumiItem _item({
+  required int airWeekday,
+  required String airDate,
+  int totalEpisodes = 12,
+}) {
   return BangumiItem(
     id: 1,
     type: 2,
@@ -153,7 +194,7 @@ BangumiItem _item({required int airWeekday, required String airDate}) {
     votes: 0,
     votesCount: const [],
     info: '',
-    totalEpisodes: 12,
+    totalEpisodes: totalEpisodes,
     airTime: '22:00',
   );
 }

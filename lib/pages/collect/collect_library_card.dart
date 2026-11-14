@@ -240,16 +240,20 @@ class _CollectListTile extends StatelessWidget {
     final item = entry.bangumiItem;
     final title = CollectLibraryQuery.titleOf(entry);
     final type = CollectType.fromValue(entry.type);
-    final total = item.totalEpisodes;
     final watched = history?.lastWatchEpisode ?? 0;
-    final progress = watched > 0
-        ? '看到第 ${watched.toString().padLeft(2, '0')} 集${total > 0 ? ' · 全 $total 话' : ''}'
-        : '未开始${total > 0 ? ' · 全 $total 话' : ''}';
-    final update = nextAiringLabel(
-      airDate: item.airDate,
-      airWeekday: item.airWeekday,
-      airTime: item.airTime,
+    final progressStatus = episodeProgressStatus(
+      item: item,
+      watchedEpisode: watched,
     );
+    final progress = progressStatus.label;
+    final update = progressStatus.completed
+        ? null
+        : progressStatus.updateLabel ??
+            nextAiringLabel(
+              airDate: item.airDate,
+              airWeekday: item.airWeekday,
+              airTime: item.airTime,
+            );
     final rating = showRating && item.ratingScore > 0
         ? '${item.ratingScore.toStringAsFixed(1)} 分'
         : null;
