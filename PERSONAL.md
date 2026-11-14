@@ -1,11 +1,14 @@
 # Kazumi 个人改造版
 
-这是基于 [Kazumi](https://github.com/Predidit/Kazumi) 的个人使用版本，参考 Animeko 的详情页、选集与追番体验做了裁剪和增强。仓库只保留在本地，不推送到 GitHub。
+这是基于 [Kazumi](https://github.com/Predidit/Kazumi) 的个人使用版本，参考 Animeko 的详情页、选集与追番体验做了裁剪和增强。
+
+- 远程仓库：`https://github.com/fujiemel/kazumi-personal`（公开，仅用于下载和更新）
+- 安装包：仓库的 Releases 页面，由 GitHub Actions 自动构建
 
 ## 分支与备份
 
-- 分支：`personal/animeko-style`
-- 标签：`personal-v1`、`personal-v2`
+- 分支：`personal/animeko-style`（推送到远程 `main`）
+- 标签：`personal-v1` ~ `personal-v4`、版本标签 `2.4.3`
 - 单文件备份：`../kazumi-personal.bundle`
 
 ## 主要改动
@@ -40,6 +43,7 @@
 - Android `applicationId`：`com.fujiemel.kazumi`，可与官方版共存
 - Gradle 镜像：`dl.google.com` + 阿里 / 腾讯
 - 产物：`../dist/kazumi-2.4.3-arm64-fujiemel.apk`
+- 固定 debug 签名：`android/app/debug.keystore`，保证本地构建和 CI 构建可以覆盖安装
 
 ## 构建环境
 
@@ -64,8 +68,8 @@ adb install -r build/app/outputs/flutter-apk/app-release.apk
 
 - 历史记录仍保存“列表索引”；线路集数有偏移时，卡片进度文字可能和规范集号不一致。
 - 当前已播集数是由首播日期按周估算的，遇到停播/拆季会偏乐观。
-- APK 为 arm64-v8a、Debug 签名，仅适合个人安装。
-- 没有 GitHub 远程；用 bundle 做备份。
+- APK 为 arm64-v8a、Debug 签名，仅适合个人安装，不能上架应用商店。
+- 应用内更新依赖 GitHub Releases；没有新版本标签时不会提示更新。
 
 ## 许可证
 

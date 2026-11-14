@@ -11,3 +11,6 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# Personal build: shared debug keystore so releases stay upgradeable.
+!app/debug.keystore
