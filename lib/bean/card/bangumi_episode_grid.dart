@@ -185,8 +185,8 @@ class _EpisodeTile extends StatelessWidget {
       message: tooltip,
       waitDuration: const Duration(milliseconds: 350),
       child: Container(
-        width: 42,
-        height: 42,
+        width: 46,
+        height: 54,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: background,
@@ -196,13 +196,29 @@ class _EpisodeTile extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Text(
-              episode.episode.toInt().toString().padLeft(2, '0'),
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: foreground,
-                fontWeight: isNext ? FontWeight.w700 : FontWeight.w500,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  episode.episode.toInt().toString().padLeft(2, '0'),
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: foreground,
+                    fontWeight: isNext ? FontWeight.w700 : FontWeight.w500,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+                if (date != null)
+                  Text(
+                    '${date!.month}/${date!.day}',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontSize: 9,
+                      height: 1.1,
+                      color: foreground.withValues(alpha: 0.75),
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+              ],
             ),
             if (isWatched)
               Positioned(

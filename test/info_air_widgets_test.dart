@@ -81,6 +81,7 @@ void main() {
     expect(find.text('全 28 话'), findsOneWidget);
     expect(find.text('已更新 8 / 28 话'), findsOneWidget);
     expect(find.textContaining('下一话'), findsWidgets);
+    expect(find.text('1/8'), findsNWidgets(2));
   });
 
   testWidgets('marks watched episodes and shows watched count', (tester) async {
