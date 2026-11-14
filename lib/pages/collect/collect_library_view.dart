@@ -41,6 +41,8 @@ class CollectLibraryView extends StatefulWidget {
     required this.onLayoutChanged,
     required this.histories,
     required this.onResume,
+    this.remoteEpisodes = const {},
+    this.onResumeAtEpisode,
   });
 
   final List<CollectedBangumi> entries;
@@ -52,6 +54,8 @@ class CollectLibraryView extends StatefulWidget {
   final ValueChanged<CollectLayout> onLayoutChanged;
   final Map<int, History> histories;
   final ValueChanged<History> onResume;
+  final Map<int, int> remoteEpisodes;
+  final void Function(BangumiItem item, int episode)? onResumeAtEpisode;
 
   @override
   State<CollectLibraryView> createState() => _CollectLibraryViewState();
@@ -449,6 +453,13 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
           showRating: widget.showRating,
           history: history,
           sequelNotice: _noticeFor(entries[index].bangumiItem.id),
+          remoteEpisode: widget.remoteEpisodes[entries[index].bangumiItem.id],
+          onResumeAtEpisode: widget.onResumeAtEpisode == null
+              ? null
+              : (episode) => widget.onResumeAtEpisode!(
+                    entries[index].bangumiItem,
+                    episode,
+                  ),
           onOpen: () => widget.onOpen(entries[index].bangumiItem),
           onResume: history == null ? null : () => widget.onResume(history),
           onChangeType: _changeTypeFor(entries[index]),

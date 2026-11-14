@@ -18,6 +18,7 @@ import 'package:kazumi/pages/collect/collect_library_view.dart';
 import 'package:kazumi/pages/collect/collect_sync_dialog.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/info/source_sheet_launcher.dart';
+import 'package:kazumi/services/bangumi/bangumi_progress_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/history_lookup.dart';
 import 'package:kazumi/utils/media.dart';
@@ -39,6 +40,7 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
   final HistoryController _historyController = inject<HistoryController>();
   bool get _syncDialogOpen => dialogs.isRunning;
   final Set<int> _pendingIds = {};
+  final BangumiProgressService _progress = BangumiProgressService.instance;
   late CollectLayout _layout;
 
   Future<bool> _syncStep(
@@ -68,6 +70,18 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
     );
     collectController.loadCollectibles();
     _historyController.init();
+    _progress.addListener(_onProgressChanged);
+    unawaited(_progress.refresh());
+  }
+
+  void _onProgressChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _progress.removeListener(_onProgressChanged);
+    super.dispose();
   }
 
   void _changeLayout(CollectLayout layout) {
@@ -110,6 +124,14 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
             CollectSyncDestination.bangumiSettings => '/settings/bangumi/',
           }));
     }, errorMessage: '同步未完成，请稍后重试');
+  }
+
+  void _resumeAtEpisode(BangumiItem item, int episode) {
+    unawaited(showSourceSheetForBangumi(
+      context,
+      item,
+      continueEpisodeNumber: episode,
+    ));
   }
 
   void _resume(History history) {
@@ -171,7 +193,9 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
               onChangeType: (item, type) =>
                   unawaited(_changeType(item, type)),
               histories: latestHistories,
+              remoteEpisodes: _progress.episodes,
               onResume: _resume,
+              onResumeAtEpisode: _resumeAtEpisode,
             );
           },
         ),

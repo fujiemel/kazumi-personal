@@ -47,6 +47,53 @@ void main() {
 
     expect(find.text('看到第 03 集 · 全 12 话'), findsOneWidget);
     expect(find.text('继续观看 03'), findsOneWidget);
+    expect(find.textContaining('Bangumi 已看到'), findsNothing);
+  });
+
+  testWidgets('shows Bangumi progress when it is ahead of local history',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final item = _item();
+    final entry = CollectedBangumi(
+      item,
+      DateTime.now(),
+      CollectType.watching.value,
+    );
+    final history = History(
+      item,
+      3,
+      '测试来源',
+      DateTime.now(),
+      'https://example.com/anime',
+      '第 3 话',
+    );
+    int? resumedAt;
+
+    await tester.pumpWidget(
+      _app(
+        CollectLibraryView(
+          entries: [entry],
+          showRating: true,
+          onOpen: (_) {},
+          onChangeType: (_, _) {},
+          canEdit: (_) => true,
+          layout: CollectLayout.list,
+          onLayoutChanged: (_) {},
+          histories: {item.id: history},
+          remoteEpisodes: {item.id: 8},
+          onResumeAtEpisode: (_, episode) => resumedAt = episode,
+          onResume: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bangumi 已看到 08 · 从此继续'), findsOneWidget);
+    await tester.tap(find.text('Bangumi 已看到 08 · 从此继续'));
+    await tester.pump();
+    expect(resumedAt, 8);
   });
 
   testWidgets('caught-up card shows the concrete update time', (tester) async {

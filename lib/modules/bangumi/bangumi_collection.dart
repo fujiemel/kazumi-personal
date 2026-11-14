@@ -31,6 +31,9 @@ class BangumiCollection {
   /// 总集数
   int eps;
 
+  /// 已看到第几集（Bangumi 的 ep_status）
+  int epStatus;
+
   /// 排名
   int rank;
 
@@ -52,7 +55,8 @@ class BangumiCollection {
       this.eps,
       this.rank,
       this.images,
-      this.tags);
+      this.tags,
+      {this.epStatus = 0});
 
   BangumiItem toBangumiItem() {
     return BangumiItem.fromJson({
@@ -118,6 +122,7 @@ class BangumiCollection {
       subject['rank'] as int? ?? 0,
       subjectImages,
       subjectTags,
+      epStatus: json['ep_status'] as int? ?? 0,
     );
   }
 }

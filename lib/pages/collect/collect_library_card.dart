@@ -237,6 +237,8 @@ class _CollectListTile extends StatelessWidget {
     this.history,
     this.onResume,
     this.sequelNotice,
+    this.remoteEpisode,
+    this.onResumeAtEpisode,
   });
 
   final CollectedBangumi entry;
@@ -246,6 +248,8 @@ class _CollectListTile extends StatelessWidget {
   final History? history;
   final VoidCallback? onResume;
   final AiredSequel? sequelNotice;
+  final int? remoteEpisode;
+  final ValueChanged<int>? onResumeAtEpisode;
 
   @override
   Widget build(BuildContext context) {
@@ -255,6 +259,8 @@ class _CollectListTile extends StatelessWidget {
     final title = CollectLibraryQuery.titleOf(entry);
     final type = CollectType.fromValue(entry.type);
     final watched = history?.lastWatchEpisode ?? 0;
+    final remoteWatched =
+        remoteEpisode != null && remoteEpisode! > watched ? remoteEpisode : null;
     final progressStatus = episodeProgressStatus(
       item: item,
       watchedEpisode: watched,
@@ -325,6 +331,8 @@ class _CollectListTile extends StatelessWidget {
                 title,
                 progress,
                 ?update,
+                if (remoteWatched != null)
+                  'Bangumi 已看到 $remoteWatched 集',
                 meta,
               ].join('，'),
               child: InkWell(onTap: onOpen),
@@ -412,6 +420,36 @@ class _CollectListTile extends StatelessWidget {
                           ),
                         ),
                       ),
+                      if (remoteWatched != null) ...[
+                        const SizedBox(height: 4),
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: onResumeAtEpisode == null
+                              ? null
+                              : () => onResumeAtEpisode!(remoteWatched),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.sync_rounded,
+                                size: 15,
+                                color: colors.tertiary,
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  'Bangumi 已看到 ${remoteWatched.toString().padLeft(2, '0')} · 从此继续',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colors.tertiary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       if (sequelNotice != null) ...[
                         const SizedBox(height: 4),
                         ExcludeSemantics(
