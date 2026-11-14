@@ -65,6 +65,15 @@ Kazumi 原项目说明、平台支持和完整文档见 [README.upstream.md](REA
 
 应用内「检查更新」会读取本仓库的 Releases，检测到新版本后可直接下载安装。
 
+## 发布新版本
+
+1. 修改 `pubspec.yaml` 的 `version:`，例如 `2.4.4+20404`
+2. 提交并推送 `main`
+3. 创建并推送同名标签：`git tag 2.4.4 && git push personal 2.4.4`
+4. GitHub Actions 自动构建 APK 和 ZIP，并发布到 Releases
+
+注意：标签名要与 `version:` 前半段一致，应用内更新按标签名比较版本；一次只推一个标签，否则 GitHub 可能不触发构建。
+
 ## 构建
 
 环境、命令和已知限制见 [PERSONAL.md](PERSONAL.md)。
