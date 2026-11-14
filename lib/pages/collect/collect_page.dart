@@ -125,10 +125,6 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
     ));
   }
 
-  void _selectSource(BangumiItem item) {
-    unawaited(showSourceSheetForBangumi(context, item));
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -176,7 +172,6 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
                   unawaited(_changeType(item, type)),
               histories: latestHistories,
               onResume: _resume,
-              onSelectSource: _selectSource,
             );
           },
         ),

@@ -68,7 +68,8 @@ int? estimatedAiredEpisodes(BangumiItem item) {
   return estimate;
 }
 
-/// Short countdown for the next weekly airing, e.g. 「还有 3 天更新」.
+/// Short update label for the next weekly airing:
+/// 「今天更新」「明天更新」「3 天后更新」or「11 月 20 日更新」.
 String nextUpdateLabel(BangumiItem item) {
   final next = nextAiringDate(
     airWeekday: item.airWeekday,
@@ -81,7 +82,8 @@ String nextUpdateLabel(BangumiItem item) {
   final days = target.difference(today).inDays;
   if (days <= 0) return '今天更新';
   if (days == 1) return '明天更新';
-  return '还有 $days 天更新';
+  if (days < 7) return '$days 天后更新';
+  return '${next.month} 月 ${next.day} 日更新';
 }
 
 String _twoDigits(int value) => value.toString().padLeft(2, '0');

@@ -37,7 +37,6 @@ class CollectLibraryView extends StatefulWidget {
     required this.onLayoutChanged,
     required this.histories,
     required this.onResume,
-    required this.onSelectSource,
   });
 
   final List<CollectedBangumi> entries;
@@ -49,7 +48,6 @@ class CollectLibraryView extends StatefulWidget {
   final ValueChanged<CollectLayout> onLayoutChanged;
   final Map<int, History> histories;
   final ValueChanged<History> onResume;
-  final ValueChanged<BangumiItem> onSelectSource;
 
   @override
   State<CollectLibraryView> createState() => _CollectLibraryViewState();
@@ -388,7 +386,6 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
     final columns = ((contentWidth + spacing) / (preferredWidth + spacing))
         .ceil()
         .clamp(1, maxColumns);
-    final tileWidth = (contentWidth - spacing * (columns - 1)) / columns;
 
     Widget tile(int index) {
       final history = widget.histories[entries[index].bangumiItem.id];
@@ -399,10 +396,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
           entry: entries[index],
           showRating: widget.showRating,
           history: history,
-          stackActions: tileWidth < 360,
           onOpen: () => widget.onOpen(entries[index].bangumiItem),
-          onSelectSource: () =>
-              widget.onSelectSource(entries[index].bangumiItem),
           onResume: history == null ? null : () => widget.onResume(history),
           onChangeType: _changeTypeFor(entries[index]),
         ),

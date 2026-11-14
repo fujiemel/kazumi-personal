@@ -218,8 +218,6 @@ class _CollectListTile extends StatelessWidget {
     required this.showRating,
     required this.onOpen,
     required this.onChangeType,
-    required this.onSelectSource,
-    required this.stackActions,
     this.history,
     this.onResume,
   });
@@ -228,8 +226,6 @@ class _CollectListTile extends StatelessWidget {
   final bool showRating;
   final VoidCallback onOpen;
   final ValueChanged<CollectType>? onChangeType;
-  final VoidCallback onSelectSource;
-  final bool stackActions;
   final History? history;
   final VoidCallback? onResume;
 
@@ -246,14 +242,47 @@ class _CollectListTile extends StatelessWidget {
       watchedEpisode: watched,
     );
     final progress = progressStatus.label;
-    final update = progressStatus.completed
+    final update = progressStatus.caughtUp || progressStatus.completed
         ? null
-        : progressStatus.updateLabel ??
-            nextAiringLabel(
-              airDate: item.airDate,
-              airWeekday: item.airWeekday,
-              airTime: item.airTime,
-            );
+        : nextAiringLabel(
+            airDate: item.airDate,
+            airWeekday: item.airWeekday,
+            airTime: item.airTime,
+          );
+    final Widget action;
+    if (progressStatus.completed) {
+      action = FilledButton.tonalIcon(
+        onPressed: null,
+        style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
+        icon: const Icon(Icons.check_rounded, size: 18),
+        label: const Text('已看完'),
+      );
+    } else if (progressStatus.caughtUp) {
+      action = FilledButton.tonalIcon(
+        onPressed: null,
+        style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
+        icon: const Icon(Icons.schedule_rounded, size: 18),
+        label: Text(progressStatus.updateLabel ?? '等待更新'),
+      );
+    } else if (onResume != null) {
+      action = FilledButton.tonalIcon(
+        onPressed: onResume,
+        style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
+        icon: const Icon(Icons.play_arrow_rounded, size: 18),
+        label: Text(
+          watched > 0
+              ? '继续观看 ${watched.toString().padLeft(2, '0')}'
+              : '继续观看',
+        ),
+      );
+    } else {
+      action = FilledButton.tonalIcon(
+        onPressed: onOpen,
+        style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
+        icon: const Icon(Icons.play_arrow_rounded, size: 18),
+        label: const Text('开始观看'),
+      );
+    }
     final rating = showRating && item.ratingScore > 0
         ? '${item.ratingScore.toStringAsFixed(1)} 分'
         : null;
@@ -366,52 +395,9 @@ class _CollectListTile extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      _buildActions(
-                        selectButton: TextButton.icon(
-                          onPressed: onSelectSource,
-                          style: TextButton.styleFrom(
-                            minimumSize: const Size(0, 40),
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                          ),
-                          icon: const Icon(
-                            Icons.format_list_bulleted_rounded,
-                            size: 18,
-                          ),
-                          label: const Text('选集'),
-                        ),
-                        playButton: onResume != null
-                            ? FilledButton.tonalIcon(
-                                onPressed: onResume,
-                                style: FilledButton.styleFrom(
-                                  minimumSize: const Size(0, 40),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                  ),
-                                ),
-                                icon: const Icon(
-                                  Icons.play_arrow_rounded,
-                                  size: 18,
-                                ),
-                                label: Text(
-                                  watched > 0
-                                      ? '继续观看 ${watched.toString().padLeft(2, '0')}'
-                                      : '继续观看',
-                                ),
-                              )
-                            : FilledButton.tonalIcon(
-                                onPressed: onOpen,
-                                style: FilledButton.styleFrom(
-                                  minimumSize: const Size(0, 40),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                  ),
-                                ),
-                                icon: const Icon(
-                                  Icons.play_arrow_rounded,
-                                  size: 18,
-                                ),
-                                label: const Text('开始观看'),
-                              ),
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: action,
                       ),
                     ],
                   ),
@@ -421,30 +407,6 @@ class _CollectListTile extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildActions({
-    required Widget selectButton,
-    required Widget playButton,
-  }) {
-    if (stackActions) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          selectButton,
-          const SizedBox(height: 6),
-          playButton,
-        ],
-      );
-    }
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        selectButton,
-        const SizedBox(width: 8),
-        playButton,
-      ],
     );
   }
 }
