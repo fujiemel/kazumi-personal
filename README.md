@@ -52,6 +52,19 @@ Kazumi 原项目说明、平台支持和完整文档见 [README.upstream.md](REA
   - 镜像检查：经 `gh-proxy.org` 访问 GitHub API
   - APK 资产名需包含 `android` 和 `.apk`，例如 `Kazumi_android_2.4.3.apk`
 
+## 下载与安装
+
+安装包由 GitHub Actions 自动构建，发布在：
+
+**https://github.com/fujiemel/kazumi-personal/releases**
+
+- **Android**：下载 `Kazumi_android_<版本>.apk`，在手机上允许“安装未知应用”后安装。
+  - 仅提供 `arm64-v8a` 版本，适用于绝大多数近几年的安卓手机。
+  - 包名为 `com.fujiemel.kazumi`，可以和官方 Kazumi 同时安装。
+- **Windows**：下载 `Kazumi_windows_<版本>.zip`，解压后运行 `kazumi.exe`。
+
+应用内「检查更新」会读取本仓库的 Releases，检测到新版本后可直接下载安装。
+
 ## 构建
 
 环境、命令和已知限制见 [PERSONAL.md](PERSONAL.md)。
