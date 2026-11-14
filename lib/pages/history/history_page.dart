@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -9,10 +11,12 @@ import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/history/history_list_view.dart';
 import 'package:kazumi/pages/history/history_record_tile.dart';
+import 'package:kazumi/pages/info/source_sheet_launcher.dart';
 import 'package:kazumi/services/player/history_playback_service.dart';
 import 'package:kazumi/services/plugin/rule_engine_models.dart'
     show RuleCancelToken;
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/utils/media.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key, required this.controller});
@@ -183,6 +187,21 @@ class _HistoryCardState extends State<_HistoryCard> with KazumiDialogOwner {
 
   Future<void> _play() async {
     if (widget.editing || widget.busy || dialogs.isRunning) return;
+    final history = widget.history;
+    if (HistoryEntryKind.normalize(history.entryKind) !=
+        HistoryEntryKind.offline) {
+      final parsed = extractEpisodeNumber(history.lastWatchEpisodeName);
+      final episodeNumber = parsed > 0 ? parsed : history.lastWatchEpisode;
+      final position =
+          history.progresses[history.lastWatchEpisode]?.progress.inSeconds;
+      unawaited(showSourceSheetForBangumi(
+        context,
+        history.bangumiItem,
+        continueEpisodeNumber: episodeNumber,
+        continuePositionSeconds: position,
+      ));
+      return;
+    }
     await dialogs.run((task) async {
       final cancelToken = RuleCancelToken();
       final result = await task.loading(
