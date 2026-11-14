@@ -21,6 +21,7 @@ Kazumi 原项目说明、平台支持和完整文档见 [README.upstream.md](REA
 - 概览顺序调整为：简介 → 剧集 → 标签
 - Bangumi 剧集列表增加 30 分钟缓存
 - `totalEpisodes`、`airTime` 持久化到 Hive
+- 续作已开播时显示提示，可一键加入「在看」
 
 ### 追番页
 - 改为 Animeko 风格横向卡片
@@ -30,6 +31,7 @@ Kazumi 原项目说明、平台支持和完整文档见 [README.upstream.md](REA
   - 7 天及以上：`M 月 D 日更新`
 - 「继续观看」先选择播放来源，再按同一集号/进度恢复
 - 移除「选集」按钮
+- 已开播的续作会在卡片上提示
 
 ### 推荐页
 - 顶部只保留「今日更新」
@@ -43,6 +45,10 @@ Kazumi 原项目说明、平台支持和完整文档见 [README.upstream.md](REA
 
 ### 历史记录
 - 在线记录继续播放时先选择来源；离线记录仍走本地播放
+
+### Bangumi 同步
+- 同步想看 / 在看 / 看过状态
+- 回写「看到第几集」（每集看完 90% 后静默更新）
 
 ### 构建与更新
 - Android `applicationId` 改为 `com.fujiemel.kazumi`，可与官方版共存
