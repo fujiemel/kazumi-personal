@@ -168,7 +168,7 @@ class _BangumiSyncPageState extends State<BangumiSyncPage> {
                   const SyncPageIntro(
                     icon: Icons.bookmarks_rounded,
                     title: 'Bangumi',
-                    description: '同步想看、在看、看过等追番状态。',
+                    description: '同步想看、在看、看过等追番状态，并回写看到第几集。',
                   ),
                   _accountCard(configured),
                   _syncControls(configured, enabled),

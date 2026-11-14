@@ -6,6 +6,9 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/collect/collect_module.dart';
+import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/repositories/collect_crud_repository.dart';
 import 'package:kazumi/request/clients/bangumi_client.dart';
@@ -255,6 +258,78 @@ void main() {
     expect(GStorage.getSetting(SettingsKeys.bangumiSyncEnable), isFalse);
     expect(adapter.requests, hasLength(1));
   });
+
+  test('episode progress is written once per increase', () async {
+    final id = 400602;
+    await GStorage.collectibles.put(
+      id,
+      CollectedBangumi(_item(id), DateTime(2026, 1, 1), CollectType.watching.value),
+    );
+    final writes = <Object?>[];
+    adapter.respond = (request) async {
+      if (request.method == 'POST') {
+        final data = request.data;
+        writes.add(
+          data is String ? jsonDecode(data) : data,
+        );
+        return _json({});
+      }
+      return _user();
+    };
+    await bangumi.ping();
+
+    await bangumi.syncEpisodeProgress(id, 3);
+    await bangumi.syncEpisodeProgress(id, 3);
+    await bangumi.syncEpisodeProgress(id, 2);
+    expect(writes, [
+      {'ep_status': 3}
+    ]);
+
+    await bangumi.syncEpisodeProgress(id, 4);
+    expect(writes.last, {'ep_status': 4});
+  });
+
+  test('episode progress is skipped while Bangumi sync is disabled',
+      () async {
+    final id = 400602;
+    await GStorage.collectibles.put(
+      id,
+      CollectedBangumi(_item(id), DateTime(2026, 1, 1), CollectType.watching.value),
+    );
+    await GStorage.putSetting(SettingsKeys.bangumiSyncEnable, false);
+
+    await bangumi.syncEpisodeProgress(id, 3);
+
+    expect(adapter.requests, isEmpty);
+  });
+
+  test('episode progress is not written for uncollected subjects', () async {
+    await bangumi.syncEpisodeProgress(400602, 3);
+
+    expect(adapter.requests, isEmpty);
+  });
+
+  test('failed episode progress waits before retrying', () async {
+    final id = 400602;
+    await GStorage.collectibles.put(
+      id,
+      CollectedBangumi(_item(id), DateTime(2026, 1, 1), CollectType.watching.value),
+    );
+    var writes = 0;
+    adapter.respond = (request) async {
+      if (request.method == 'POST') {
+        writes++;
+        return _json({}, status: 400);
+      }
+      return _user();
+    };
+    await bangumi.ping();
+
+    await bangumi.syncEpisodeProgress(id, 3);
+    await bangumi.syncEpisodeProgress(id, 3);
+
+    expect(writes, 1);
+  });
 }
 
 ResponseBody _json(Object data, {int status = 200}) => ResponseBody.fromString(
@@ -293,3 +368,21 @@ class _TestPaths extends PathProviderPlatform {
   @override
   Future<String?> getApplicationSupportPath() async => path;
 }
+
+BangumiItem _item(int id) => BangumiItem(
+      id: id,
+      type: 2,
+      name: 'Test',
+      nameCn: '测试',
+      summary: '',
+      airDate: '2023-09-29',
+      airWeekday: 5,
+      rank: 0,
+      images: const {},
+      tags: const [],
+      alias: const [],
+      ratingScore: 0,
+      votes: 0,
+      votesCount: const [],
+      info: '',
+    );

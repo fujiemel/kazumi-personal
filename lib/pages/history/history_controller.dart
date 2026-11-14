@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/repositories/history_repository.dart';
+import 'package:kazumi/services/sync/bangumi_sync_service.dart';
 import 'package:mobx/mobx.dart';
 
 part 'history_controller.g.dart';
@@ -32,6 +35,17 @@ abstract class _HistoryController with Store {
       duration: duration,
     );
     init();
+    final totalMs = duration.inMilliseconds;
+    if (totalMs > 0 &&
+        progress.inMilliseconds >= totalMs * 0.9 &&
+        identity.canRecord) {
+      unawaited(
+        BangumiSyncService().syncEpisodeProgress(
+          identity.bangumiItem.id,
+          identity.episodeNumber,
+        ),
+      );
+    }
   }
 
   Progress? lastWatching(

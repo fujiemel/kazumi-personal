@@ -61,7 +61,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
               _SyncServiceCard(
                 title: '追番同步',
                 service: 'Bangumi',
-                description: '与 Bangumi 保持相同的追番状态。',
+                description: '与 Bangumi 保持相同的追番状态和观看进度。',
                 content: '想看 · 在看 · 看过 · 搁置 · 抛弃',
                 icon: Icons.bookmarks_rounded,
                 color: colors.secondaryContainer,

@@ -749,6 +749,12 @@ class BangumiApi {
     return await updateBangumiById(id, {'type': type.value});
   }
 
+  /// 回写「看到第几集」。Bangumi 的 `ep_status` 表示已看完的集数。
+  static Future<bool> updateBangumiEpisodeStatus(int id, int episode) async {
+    if (episode <= 0) return false;
+    return updateBangumiById(id, {'ep_status': episode});
+  }
+
   static Future<bool> addOrUpdateBangumiEvaluationBySubjectID(
     int subjectID,
     int localType, {

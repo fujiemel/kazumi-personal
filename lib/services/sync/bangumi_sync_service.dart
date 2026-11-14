@@ -23,6 +23,12 @@ class BangumiSyncService extends ChangeNotifier {
 
   final _operations = AsyncSerialQueue();
 
+  /// 每部番最近一次成功或已排队的集数，避免进度条每秒都触发请求。
+  final Map<int, int> _requestedEpisode = {};
+  final Map<int, DateTime> _episodeRetryAfter = {};
+
+  static const Duration _episodeRetryCooldown = Duration(minutes: 10);
+
   String get _configuredToken =>
       GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim();
 
@@ -35,6 +41,8 @@ class BangumiSyncService extends ChangeNotifier {
     _verifiedToken = null;
     _username = '';
     _lastError = null;
+    _requestedEpisode.clear();
+    _episodeRetryAfter.clear();
     notifyListeners();
   }
 
@@ -139,6 +147,48 @@ class BangumiSyncService extends ChangeNotifier {
         localType,
       );
     });
+  }
+
+  /// 把「看到第几集」静默回写到 Bangumi。
+  ///
+  /// 进度条每秒都会更新历史，这里按集数去重，只在集数增加时发送；
+  /// 失败不打断播放，10 分钟后才允许重试。
+  Future<void> syncEpisodeProgress(int bangumiId, int episode) async {
+    if (episode <= 0) return;
+    if (!GStorage.getSetting(SettingsKeys.bangumiSyncEnable)) return;
+
+    // 本地没有收藏的条目不回写，避免在 Bangumi 上意外创建收藏。
+    if (GStorage.collectibles.get(bangumiId) == null) return;
+
+    final requested = _requestedEpisode[bangumiId] ?? 0;
+    if (episode <= requested) return;
+
+    final retryAt = _episodeRetryAfter[bangumiId];
+    if (retryAt != null && DateTime.now().isBefore(retryAt)) return;
+
+    _requestedEpisode[bangumiId] = episode;
+    try {
+      await _operations.run(() async {
+        if (!initialized) await _connectConfiguredToken();
+        final updated =
+            await BangumiApi.updateBangumiEpisodeStatus(bangumiId, episode);
+        if (updated) {
+          _episodeRetryAfter.remove(bangumiId);
+          return;
+        }
+        _requestedEpisode.remove(bangumiId);
+        _episodeRetryAfter[bangumiId] =
+            DateTime.now().add(_episodeRetryCooldown);
+      });
+    } catch (e) {
+      _requestedEpisode.remove(bangumiId);
+      _episodeRetryAfter[bangumiId] = DateTime.now().add(_episodeRetryCooldown);
+      KazumiLogger().w(
+        'Bangumi: episode progress sync failed. '
+        'bangumiId=$bangumiId, episode=$episode',
+        error: e,
+      );
+    }
   }
 
   Future<void> _applyLocalMutation(BangumiLocalMutation mutation) async {
