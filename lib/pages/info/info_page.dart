@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
@@ -15,6 +16,8 @@ import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
+import 'package:kazumi/modules/collect/collect_type.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/info/info_actions_menu.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/info/info_tabview.dart';
@@ -24,11 +27,13 @@ import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/services/bangumi/bangumi_episode_cache.dart';
+import 'package:kazumi/services/bangumi/sequel_notice_service.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/platform/desktop_window_config.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/history_lookup.dart';
+import 'package:kazumi/utils/sequel_notice.dart';
 
 class InfoPage extends StatefulWidget {
   const InfoPage({
@@ -75,8 +80,10 @@ class _InfoPageState extends State<InfoPage>
   List<EpisodeInfo> episodeList = [];
   bool episodesLoading = false;
   bool episodesHasLoaded = false;
+  AiredSequel? _airedSequel;
   final BangumiEpisodeCache _episodeCache = inject<BangumiEpisodeCache>();
   final HistoryController _historyController = inject<HistoryController>();
+  final CollectController _collectController = inject<CollectController>();
 
   bool get _isShowingBangumiInfoSkeleton =>
       infoController.isLoading || _showBangumiInfoSkeleton;
@@ -270,7 +277,9 @@ class _InfoPageState extends State<InfoPage>
     showRating = GStorage.getSetting(SettingsKeys.showRating);
     infoTabController.addListener(onInfoTabChanged);
     _historyController.init();
+    _collectController.loadCollectibles();
     loadEpisodes();
+    unawaited(_loadAiredSequel());
   }
 
   void onInfoTabChanged() {
@@ -349,6 +358,29 @@ class _InfoPageState extends State<InfoPage>
         });
       }
     }
+  }
+
+  Future<void> _loadAiredSequel() async {
+    final item = infoController.bangumiItem;
+    final notice = await SequelNoticeService.instance.noticeFor(
+      item,
+      collectedIds: _collectController.collectibles
+          .map((entry) => entry.bangumiItem.id)
+          .toSet(),
+    );
+    if (!mounted || infoController.bangumiItem.id != item.id) return;
+    if (identical(_airedSequel, notice)) return;
+    setState(() => _airedSequel = notice);
+  }
+
+  Future<void> _collectAiredSequel(AiredSequel sequel) async {
+    await _collectController.addCollect(
+      sequel.item,
+      type: CollectType.watching.value,
+    );
+    if (!mounted) return;
+    if (_collectController.getCollectType(sequel.item) == 0) return;
+    KazumiDialog.showToast(message: '已加入在看：${sequel.title}');
   }
 
   void _startWatching() {
@@ -498,6 +530,12 @@ class _InfoPageState extends State<InfoPage>
           final watchedEpisode =
               latestHistories[infoController.bangumiItem.id]?.lastWatchEpisode ??
                   0;
+          final airedSequel = _airedSequel != null &&
+                  !_collectController.collectibles
+                      .any((entry) =>
+                          entry.bangumiItem.id == _airedSequel!.item.id)
+              ? _airedSequel
+              : null;
           return InfoTabView(
             tabController: infoTabController,
             bangumiItem: infoController.bangumiItem,
@@ -524,6 +562,10 @@ class _InfoPageState extends State<InfoPage>
             episodesLoading: episodesLoading,
             watchedEpisode: watchedEpisode,
             isLoading: showBangumiInfoSkeleton,
+            airedSequel: airedSequel,
+            onCollectSequel: _collectAiredSequel,
+            onOpenSequel: (item) =>
+                context.pushNamed('/info/', arguments: item),
           );
         }),
       ),

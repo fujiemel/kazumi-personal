@@ -18,6 +18,7 @@ import 'package:kazumi/modules/characters/character_item.dart';
 import 'package:kazumi/modules/staff/staff_item.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/utils/sequel_notice.dart';
 
 class InfoTabView extends StatefulWidget {
   const InfoTabView({
@@ -47,6 +48,9 @@ class InfoTabView extends StatefulWidget {
     required this.episodesLoading,
     required this.watchedEpisode,
     required this.isLoading,
+    this.airedSequel,
+    this.onCollectSequel,
+    this.onOpenSequel,
   });
 
   final bool commentsQueryTimeout;
@@ -74,6 +78,9 @@ class InfoTabView extends StatefulWidget {
   final bool episodesLoading;
   final int watchedEpisode;
   final bool isLoading;
+  final AiredSequel? airedSequel;
+  final ValueChanged<AiredSequel>? onCollectSequel;
+  final ValueChanged<BangumiItem>? onOpenSequel;
 
   @override
   State<InfoTabView> createState() => _InfoTabViewState();
@@ -89,6 +96,14 @@ class _InfoTabViewState extends State<InfoTabView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (widget.airedSequel case final sequel?) ...[
+          _AiredSequelBanner(
+            sequel: sequel,
+            onOpen: widget.onOpenSequel,
+            onCollect: widget.onCollectSequel,
+          ),
+          const SizedBox(height: 20),
+        ],
         Text('简介', style: TextStyle(fontSize: 18)),
         const SizedBox(height: 8),
         LayoutBuilder(builder: (context, constraints) {
@@ -665,6 +680,85 @@ class _RelatedBangumiCardH extends StatelessWidget {
                 ],
               );
             },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AiredSequelBanner extends StatelessWidget {
+  const _AiredSequelBanner({
+    required this.sequel,
+    this.onOpen,
+    this.onCollect,
+  });
+
+  final AiredSequel sequel;
+  final ValueChanged<BangumiItem>? onOpen;
+  final ValueChanged<AiredSequel>? onCollect;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Material(
+      color: colors.surfaceContainerHigh,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onOpen == null ? null : () => onOpen!(sequel.item),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+          child: Row(
+            children: [
+              Icon(
+                Icons.playlist_add_check_circle_rounded,
+                color: colors.primary,
+                size: 22,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '续作已开播',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: colors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      sequel.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      sequel.airDateLabel,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              FilledButton.tonal(
+                onPressed: onCollect == null ? null : () => onCollect!(sequel),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 36),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                ),
+                child: const Text('加入在看'),
+              ),
+            ],
           ),
         ),
       ),

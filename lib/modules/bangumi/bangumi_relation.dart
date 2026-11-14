@@ -53,8 +53,8 @@ class BangumiRelation {
         type: type,
         name: name,
         nameCn: nameCn.isEmpty ? name : nameCn,
-        summary: '',
-        airDate: '',
+        summary: (json['short_summary'] ?? '').toString().trim(),
+        airDate: _parseDate(json['date'] ?? json['air_date']),
         airWeekday: 0,
         rank: 0,
         images: images,
@@ -69,6 +69,18 @@ class BangumiRelation {
   }
 
   BangumiItem toBangumiItem() => bangumiItem;
+
+  /// Related subjects expose their air date as `date`; keep it normalized to
+  /// `YYYY-MM-DD` so the sequel check can compare it with today.
+  static String _parseDate(dynamic value) {
+    final text = (value ?? '').toString().trim();
+    if (text.isEmpty) return '';
+    final parsed = DateTime.tryParse(text);
+    if (parsed == null) return '';
+    return '${parsed.year.toString().padLeft(4, '0')}-'
+        '${parsed.month.toString().padLeft(2, '0')}-'
+        '${parsed.day.toString().padLeft(2, '0')}';
+  }
 
   static int? _parseInt(dynamic value) {
     if (value is int) return value;

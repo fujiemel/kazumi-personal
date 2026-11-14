@@ -8,6 +8,7 @@ class _CollectPosterCard extends StatelessWidget {
     required this.showStatus,
     required this.onOpen,
     required this.onChangeType,
+    this.sequelNotice,
   });
 
   final CollectedBangumi entry;
@@ -15,6 +16,7 @@ class _CollectPosterCard extends StatelessWidget {
   final bool showStatus;
   final VoidCallback onOpen;
   final ValueChanged<CollectType>? onChangeType;
+  final AiredSequel? sequelNotice;
 
   static const _coverRatio = 0.65;
   static bool _isCompact(double width) => width < 160;
@@ -198,7 +200,21 @@ class _CollectPosterCard extends StatelessWidget {
                 ExcludeSemantics(
                   child: AspectRatio(
                     aspectRatio: _coverRatio,
-                    child: _CollectCover(item: item),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _CollectCover(item: item),
+                        if (sequelNotice != null)
+                          PositionedDirectional(
+                            top: 6,
+                            start: 6,
+                            child: _SequelBadge(
+                              label: '续作',
+                              tooltip: '续作已开播：${sequelNotice!.title}',
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
                 Expanded(child: footer),
@@ -220,6 +236,7 @@ class _CollectListTile extends StatelessWidget {
     required this.onChangeType,
     this.history,
     this.onResume,
+    this.sequelNotice,
   });
 
   final CollectedBangumi entry;
@@ -228,6 +245,7 @@ class _CollectListTile extends StatelessWidget {
   final ValueChanged<CollectType>? onChangeType;
   final History? history;
   final VoidCallback? onResume;
+  final AiredSequel? sequelNotice;
 
   @override
   Widget build(BuildContext context) {
@@ -394,6 +412,32 @@ class _CollectListTile extends StatelessWidget {
                           ),
                         ),
                       ),
+                      if (sequelNotice != null) ...[
+                        const SizedBox(height: 4),
+                        ExcludeSemantics(
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.playlist_add_check_circle_rounded,
+                                size: 15,
+                                color: colors.primary,
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  '续作已开播 · ${sequelNotice!.title}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colors.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 10),
                       Align(
                         alignment: AlignmentDirectional.centerEnd,
@@ -486,5 +530,35 @@ class _CollectEntryMenu extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+class _SequelBadge extends StatelessWidget {
+  const _SequelBadge({required this.label, this.tooltip});
+
+  final String label;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final badge = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: colors.primary,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: colors.onPrimary,
+          fontSize: 10,
+          height: 1.2,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+    if (tooltip == null) return badge;
+    return Tooltip(message: tooltip!, child: badge);
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,8 +12,10 @@ import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/pages/collect/collect_library_query.dart';
+import 'package:kazumi/services/bangumi/sequel_notice_service.dart';
 import 'package:kazumi/utils/air_schedule.dart';
 import 'package:kazumi/utils/episode_progress.dart';
+import 'package:kazumi/utils/sequel_notice.dart';
 
 part 'collect_library_card.dart';
 part 'collect_library_controls.dart';
@@ -70,6 +74,10 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
   String _query = '';
   bool _searchExpanded = false;
 
+  final SequelNoticeService _sequelService = SequelNoticeService.instance;
+  final Map<int, AiredSequel> _sequelNotices = {};
+  Set<int> _requestedSequelIds = const {};
+
   // The tapped tab while a tap animates, otherwise the dominant page so swipes
   // update mid-gesture. Tab switches rebuild nothing but its listeners.
   final _selectedType = ValueNotifier<CollectType?>(CollectType.watching);
@@ -78,6 +86,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
   void initState() {
     super.initState();
     _selectedType.addListener(_libraryFocus.requestFocus);
+    _syncSequelNotices();
   }
 
   @override
@@ -112,6 +121,49 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
   void didUpdateWidget(covariant CollectLibraryView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.layout != widget.layout) _resetResults();
+    _syncSequelNotices();
+  }
+
+  Set<int> get _collectedIds =>
+      widget.entries.map((entry) => entry.bangumiItem.id).toSet();
+
+  /// 只检查「在看 / 看过」里的续作，失败和空结果都不会影响列表显示。
+  void _syncSequelNotices() {
+    final entries = widget.entries.where((entry) {
+      final type = CollectType.fromValue(entry.type);
+      return type == CollectType.watching || type == CollectType.watched;
+    }).toList(growable: false);
+    final ids = entries.map((entry) => entry.bangumiItem.id).toSet();
+    if (setEquals(ids, _requestedSequelIds)) return;
+    _requestedSequelIds = ids;
+    if (entries.isEmpty) return;
+
+    final collectedIds = _collectedIds;
+    for (final entry in entries) {
+      final item = entry.bangumiItem;
+      final cached = _sequelService.cached(item.id);
+      if (cached != null) {
+        _sequelNotices[item.id] = cached;
+        continue;
+      }
+      unawaited(
+        _sequelService
+            .noticeFor(item, collectedIds: collectedIds)
+            .then((notice) {
+          if (!mounted || notice == null) return;
+          if (!_requestedSequelIds.contains(item.id)) return;
+          if (_collectedIds.contains(notice.item.id)) return;
+          setState(() => _sequelNotices[item.id] = notice);
+        }),
+      );
+    }
+  }
+
+  AiredSequel? _noticeFor(int subjectId) {
+    final notice = _sequelNotices[subjectId];
+    if (notice == null) return null;
+    if (_collectedIds.contains(notice.item.id)) return null;
+    return notice;
   }
 
   @override
@@ -396,6 +448,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
           entry: entries[index],
           showRating: widget.showRating,
           history: history,
+          sequelNotice: _noticeFor(entries[index].bangumiItem.id),
           onOpen: () => widget.onOpen(entries[index].bangumiItem),
           onResume: history == null ? null : () => widget.onResume(history),
           onChangeType: _changeTypeFor(entries[index]),
@@ -462,6 +515,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
         entry: entries[index],
         showRating: widget.showRating,
         showStatus: type == null,
+        sequelNotice: _noticeFor(entries[index].bangumiItem.id),
         onOpen: () => widget.onOpen(entries[index].bangumiItem),
         onChangeType: _changeTypeFor(entries[index]),
       ),
