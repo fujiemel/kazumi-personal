@@ -81,6 +81,7 @@ void main() {
     var clock = DateTime(2026, 11, 14, 12);
     final service = SequelNoticeService(
       ttl: const Duration(hours: 1),
+      requestInterval: Duration.zero,
       clock: () => clock,
       fetchRelations: (id) async {
         calls++;
@@ -101,6 +102,7 @@ void main() {
   test('deduplicates concurrent requests for one subject', () async {
     var calls = 0;
     final service = SequelNoticeService(
+      requestInterval: Duration.zero,
       fetchRelations: (id) async {
         calls++;
         await Future<void>.delayed(const Duration(milliseconds: 10));
