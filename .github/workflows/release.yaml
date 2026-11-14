@@ -2,8 +2,11 @@ name: personal-release
 
 on:
   push:
+    branches:
+      - main
     tags:
       - '[0-9]*'
+  workflow_dispatch:
 
 permissions:
   contents: write
