@@ -2,7 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
+import 'package:kazumi/bean/widget/collect_status_badge.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/collect/collect_type.dart';
 
 class BangumiTimelineCard extends StatelessWidget {
   const BangumiTimelineCard({
@@ -11,12 +13,14 @@ class BangumiTimelineCard extends StatelessWidget {
     required this.showRating,
     required this.onTap,
     this.isWatching = false,
+    this.collectType,
     this.compact = false,
   });
 
   final BangumiItem bangumiItem;
   final bool showRating;
   final bool isWatching;
+  final CollectType? collectType;
   final bool compact;
   final VoidCallback onTap;
 
@@ -135,7 +139,7 @@ class BangumiTimelineCard extends StatelessWidget {
             ),
           ),
         ],
-        if (showRating || isWatching) ...[
+        if (showRating || collectType != null || isWatching) ...[
           const Spacer(),
           const SizedBox(height: _footerGap),
           Row(
@@ -149,7 +153,10 @@ class BangumiTimelineCard extends StatelessWidget {
                 )
               else
                 const Spacer(),
-              if (isWatching) ...[
+              if (collectType != null) ...[
+                if (showRating) const SizedBox(width: 8),
+                CollectStatusBadge(type: collectType!, dense: true),
+              ] else if (isWatching) ...[
                 if (showRating) const SizedBox(width: 8),
                 Tooltip(
                   message: '正在追',

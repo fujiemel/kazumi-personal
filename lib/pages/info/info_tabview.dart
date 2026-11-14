@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/card/bangumi_air_info_card.dart';
+import 'package:kazumi/bean/widget/collect_status_badge.dart';
 import 'package:kazumi/bean/card/bangumi_episode_grid.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
@@ -13,6 +14,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_relation.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
+import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
 import 'package:kazumi/modules/staff/staff_item.dart';
@@ -51,6 +53,7 @@ class InfoTabView extends StatefulWidget {
     this.airedSequel,
     this.onCollectSequel,
     this.onOpenSequel,
+    this.collectTypes = const {},
   });
 
   final bool commentsQueryTimeout;
@@ -81,6 +84,7 @@ class InfoTabView extends StatefulWidget {
   final AiredSequel? airedSequel;
   final ValueChanged<AiredSequel>? onCollectSequel;
   final ValueChanged<BangumiItem>? onOpenSequel;
+  final Map<int, CollectType> collectTypes;
 
   @override
   State<InfoTabView> createState() => _InfoTabViewState();
@@ -339,8 +343,11 @@ class _InfoTabViewState extends State<InfoTabView> {
                             },
                           );
                         }
+                        final itemId =
+                            widget.relationList[index].bangumiItem.id;
                         return _RelatedBangumiCardH(
                           relation: widget.relationList[index],
+                          collectType: widget.collectTypes[itemId],
                         );
                       },
                       childCount: itemCount,
@@ -592,13 +599,17 @@ class _InfoTabViewState extends State<InfoTabView> {
 }
 
 class _RelatedBangumiCardH extends StatelessWidget {
-  const _RelatedBangumiCardH({required this.relation});
+  const _RelatedBangumiCardH({
+    required this.relation,
+    this.collectType,
+  });
 
   static const double cardHeight = 108;
   static const double imageHeight = 92;
   static const double posterAspectRatio = 0.65;
 
   final BangumiRelation relation;
+  final CollectType? collectType;
 
   @override
   Widget build(BuildContext context) {
@@ -664,15 +675,28 @@ class _RelatedBangumiCardH extends StatelessWidget {
                             ),
                           ),
                         ),
-                        Text(
-                          relationLabel,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textScaler: textScaler,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            color: colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                relationLabel,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textScaler: textScaler,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  color: colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            if (collectType != null) ...[
+                              const SizedBox(width: 6),
+                              CollectStatusBadge(
+                                type: collectType!,
+                                dense: true,
+                              ),
+                            ],
+                          ],
                         ),
                       ],
                     ),

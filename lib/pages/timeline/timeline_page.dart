@@ -15,6 +15,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/timeline/timeline_controller.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/anime_season.dart';
+import 'package:kazumi/utils/collect_lookup.dart';
 
 part 'timeline_options.dart';
 part 'timeline_week_selector.dart';
@@ -375,6 +376,7 @@ class _TimelinePageState extends State<TimelinePage> {
     final cardHeight = BangumiTimelineCard.heightFor(
         MediaQuery.textScalerOf(context),
         compact: compact);
+    final collectTypes = collectTypesById();
     final rawCalendar = _controller.bangumiCalendar;
     final filteredOut = day < rawCalendar.length && rawCalendar[day].isNotEmpty;
     return _TimelineScrollView(
@@ -419,6 +421,7 @@ class _TimelinePageState extends State<TimelinePage> {
                     compact: compact,
                     showRating: _showRating,
                     isWatching: watchingIds.contains(item.id),
+                    collectType: collectTypes[item.id],
                     onTap: () => context.pushNamed('/info/', arguments: item),
                   );
                 },

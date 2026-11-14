@@ -73,11 +73,13 @@ class _SearchResultGrid extends StatelessWidget {
     required this.items,
     required this.width,
     required this.showRating,
+    required this.collectTypes,
   });
 
   final List<BangumiItem> items;
   final double width;
   final bool showRating;
+  final Map<int, CollectType> collectTypes;
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +122,8 @@ class _SearchResultGrid extends StatelessWidget {
           item: items[index],
           showRating: showRating,
           titleHeight: titleHeight,
-          titleStyle: titleStyle),
+          titleStyle: titleStyle,
+          collectType: collectTypes[items[index].id]),
     );
   }
 }
@@ -131,6 +134,7 @@ class _SearchResultCard extends StatelessWidget {
     required this.showRating,
     required this.titleHeight,
     required this.titleStyle,
+    this.collectType,
   });
 
   static const coverAspectRatio = 0.7;
@@ -142,6 +146,7 @@ class _SearchResultCard extends StatelessWidget {
   final bool showRating;
   final double titleHeight;
   final TextStyle titleStyle;
+  final CollectType? collectType;
 
   @override
   Widget build(BuildContext context) {
@@ -194,6 +199,10 @@ class _SearchResultCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelMedium?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant))),
+              if (collectType != null) ...[
+                const SizedBox(width: 6),
+                CollectStatusBadge(type: collectType!, dense: true),
+              ],
             ]),
           ])),
     );

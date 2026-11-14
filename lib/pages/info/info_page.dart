@@ -530,6 +530,10 @@ class _InfoPageState extends State<InfoPage>
           final watchedEpisode =
               latestHistories[infoController.bangumiItem.id]?.lastWatchEpisode ??
                   0;
+          final collectTypes = <int, CollectType>{
+            for (final entry in _collectController.collectibles)
+              entry.bangumiItem.id: CollectType.fromValue(entry.type),
+          };
           final airedSequel = _airedSequel != null &&
                   !_collectController.collectibles
                       .any((entry) =>
@@ -563,6 +567,7 @@ class _InfoPageState extends State<InfoPage>
             watchedEpisode: watchedEpisode,
             isLoading: showBangumiInfoSkeleton,
             airedSequel: airedSequel,
+            collectTypes: collectTypes,
             onCollectSequel: _collectAiredSequel,
             onOpenSequel: (item) =>
                 context.pushNamed('/info/', arguments: item),
