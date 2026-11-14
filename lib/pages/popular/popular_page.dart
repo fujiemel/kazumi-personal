@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -6,10 +5,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/bangumi_mirror_error_widget.dart';
 import 'package:kazumi/bean/widget/kazumi_menu.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
-import 'package:kazumi/pages/history/history_controller.dart';
-import 'package:kazumi/pages/info/source_sheet_launcher.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/pages/popular/popular_home_sections.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
@@ -20,8 +16,6 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/platform/desktop_window_config.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/utils/device.dart';
-import 'package:kazumi/utils/history_lookup.dart';
-import 'package:kazumi/utils/media.dart';
 
 class PopularPage extends StatefulWidget {
   const PopularPage({
@@ -38,13 +32,11 @@ class PopularPage extends StatefulWidget {
 class _PopularPageState extends State<PopularPage> {
   late final ScrollController scrollController;
   PopularController get popularController => widget.controller;
-  final HistoryController _historyController = inject<HistoryController>();
   final CollectController _collectController = inject<CollectController>();
 
   @override
   void initState() {
     super.initState();
-    _historyController.init();
     _collectController.loadCollectibles();
     scrollController = ScrollController(
       initialScrollOffset: popularController.scrollOffset,
@@ -77,19 +69,6 @@ class _PopularPageState extends State<PopularPage> {
     }
   }
 
-  void _resume(History history) {
-    final parsed = extractEpisodeNumber(history.lastWatchEpisodeName);
-    final episodeNumber = parsed > 0 ? parsed : history.lastWatchEpisode;
-    final position =
-        history.progresses[history.lastWatchEpisode]?.progress.inSeconds;
-    unawaited(showSourceSheetForBangumi(
-      context,
-      history.bangumiItem,
-      continueEpisodeNumber: episodeNumber,
-      continuePositionSeconds: position,
-    ));
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -99,17 +78,11 @@ class _PopularPageState extends State<PopularPage> {
           buildSliverAppBar(),
           SliverToBoxAdapter(
             child: Observer(
-              builder: (_) {
-                final latest =
-                    latestHistoryByBangumi(_historyController.histories);
-                return PopularHomeSections(
-                  histories: latest.values.toList(),
-                  collectibles: _collectController.collectibles.toList(),
-                  onResume: _resume,
-                  onOpen: (item) =>
-                      context.pushNamed('/info/', arguments: item),
-                );
-              },
+              builder: (_) => PopularHomeSections(
+                collectibles: _collectController.collectibles.toList(),
+                onOpen: (item) =>
+                    context.pushNamed('/info/', arguments: item),
+              ),
             ),
           ),
           SliverToBoxAdapter(

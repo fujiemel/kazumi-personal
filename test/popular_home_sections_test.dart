@@ -3,31 +3,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
-import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/pages/popular/popular_home_sections.dart';
 
 void main() {
-  testWidgets('shows continue watching and today updates', (tester) async {
+  testWidgets('shows today updates', (tester) async {
     final now = DateTime.now();
     final item = _item(
       airWeekday: now.weekday,
-      airDate:
-          '${now.year.toString().padLeft(4, '0')}-${(now.month - 1).clamp(1, 12).toString().padLeft(2, '0')}-01',
-    );
-    final history = History(
-      item,
-      3,
-      'plugin',
-      now,
-      'https://example.com/source',
-      '第 3 话',
+      airDate: _date(now.subtract(const Duration(days: 7))),
     );
     final entry = CollectedBangumi(
       item,
       now,
       CollectType.watching.value,
     );
-    History? resumed;
     BangumiItem? opened;
 
     await tester.pumpWidget(
@@ -35,9 +24,7 @@ void main() {
         home: Scaffold(
           body: SingleChildScrollView(
             child: PopularHomeSections(
-              histories: [history],
               collectibles: [entry],
-              onResume: (value) => resumed = value,
               onOpen: (value) => opened = value,
             ),
           ),
@@ -46,28 +33,20 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('继续观看'), findsOneWidget);
-    expect(find.text('看到第 03 集 · 全 12 话'), findsOneWidget);
     expect(find.text('今日更新'), findsOneWidget);
     expect(find.text('全 12 话'), findsOneWidget);
-
-    await tester.tap(find.text('看到第 03 集 · 全 12 话'));
-    await tester.pump();
-    expect(resumed, same(history));
 
     await tester.tap(find.text('全 12 话'));
     await tester.pump();
     expect(opened, same(item));
   });
 
-  testWidgets('hides sections when there is no data', (tester) async {
+  testWidgets('hides when there are no updates', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
           body: PopularHomeSections(
-            histories: [],
             collectibles: [],
-            onResume: _noopResume,
             onOpen: _noopOpen,
           ),
         ),
@@ -75,103 +54,13 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('继续观看'), findsNothing);
     expect(find.text('今日更新'), findsNothing);
-  });
-
-  testWidgets('shows caught-up status when the latest episode is watched',
-      (tester) async {
-    final now = DateTime.now();
-    final start = now.subtract(const Duration(days: 42));
-    final item = _item(
-      airWeekday: now.weekday,
-      airDate: _date(start),
-    );
-    final history = History(
-      item,
-      7,
-      'plugin',
-      now,
-      'https://example.com/source',
-      '第 7 话',
-    );
-    final entry = CollectedBangumi(
-      item,
-      now,
-      CollectType.watching.value,
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: PopularHomeSections(
-              histories: [history],
-              collectibles: [entry],
-              onResume: _noopResume,
-              onOpen: _noopOpen,
-            ),
-          ),
-        ),
-      ),
-    );
-    await tester.pump();
-
-    expect(find.textContaining('已看完 07'), findsOneWidget);
-    expect(find.byIcon(Icons.schedule_rounded), findsOneWidget);
-  });
-
-  testWidgets('shows caught-up status without total episode count',
-      (tester) async {
-    final now = DateTime.now();
-    final start = now.subtract(const Duration(days: 42));
-    final item = _item(
-      airWeekday: now.weekday,
-      airDate: _date(start),
-      totalEpisodes: 0,
-    );
-    final history = History(
-      item,
-      7,
-      'plugin',
-      now,
-      'https://example.com/source',
-      '第 7 话',
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: PopularHomeSections(
-              histories: [history],
-              collectibles: const [],
-              onResume: _noopResume,
-              onOpen: _noopOpen,
-            ),
-          ),
-        ),
-      ),
-    );
-    await tester.pump();
-
-    expect(find.text('已看完 07'), findsOneWidget);
   });
 }
 
-String _date(DateTime date) =>
-    '${date.year.toString().padLeft(4, '0')}-'
-    '${date.month.toString().padLeft(2, '0')}-'
-    '${date.day.toString().padLeft(2, '0')}';
-
-void _noopResume(History history) {}
 void _noopOpen(BangumiItem item) {}
 
-BangumiItem _item({
-  required int airWeekday,
-  required String airDate,
-  int totalEpisodes = 12,
-}) {
+BangumiItem _item({required int airWeekday, required String airDate}) {
   return BangumiItem(
     id: 1,
     type: 2,
@@ -194,7 +83,12 @@ BangumiItem _item({
     votes: 0,
     votesCount: const [],
     info: '',
-    totalEpisodes: totalEpisodes,
+    totalEpisodes: 12,
     airTime: '22:00',
   );
 }
+
+String _date(DateTime date) =>
+    '${date.year.toString().padLeft(4, '0')}-'
+    '${date.month.toString().padLeft(2, '0')}-'
+    '${date.day.toString().padLeft(2, '0')}';
