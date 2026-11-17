@@ -226,6 +226,51 @@ void main() {
     expect(find.textContaining('更新'), findsOneWidget);
     expect(find.textContaining('继续观看'), findsNothing);
   });
+
+  testWidgets('completed card restarts from the first episode', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final item = _item();
+    final entry = CollectedBangumi(
+      item,
+      DateTime.now(),
+      CollectType.watching.value,
+    );
+    final history = History(
+      item,
+      12,
+      '测试来源',
+      DateTime.now(),
+      'https://example.com/anime',
+      '第 12 话',
+    );
+    int? resumedAt;
+
+    await tester.pumpWidget(
+      _app(
+        CollectLibraryView(
+          entries: [entry],
+          showRating: true,
+          onOpen: (_) {},
+          onChangeType: (_, _) {},
+          canEdit: (_) => true,
+          layout: CollectLayout.list,
+          onLayoutChanged: (_) {},
+          histories: {item.id: history},
+          onResumeAtEpisode: (_, episode) => resumedAt = episode,
+          onResume: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('已看完 · 全 12 话'), findsOneWidget);
+    expect(find.text('从头观看'), findsOneWidget);
+    await tester.tap(find.text('从头观看'));
+    await tester.pump();
+    expect(resumedAt, 1);
+  });
 }
 
 Widget _app(Widget body, {double textScale = 1.0}) => MaterialApp(

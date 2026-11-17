@@ -281,11 +281,14 @@ class _CollectListTile extends StatelessWidget {
           );
     final Widget action;
     if (progressStatus.completed) {
+      // 进度行已经写明「已看完」，按钮改成重看入口，避免重复文案。
       action = FilledButton.tonalIcon(
-        onPressed: null,
+        onPressed: onResumeAtEpisode == null
+            ? onOpen
+            : () => onResumeAtEpisode!(1),
         style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
-        icon: const Icon(Icons.check_rounded, size: 18),
-        label: const Text('已看完'),
+        icon: const Icon(Icons.replay_rounded, size: 18),
+        label: const Text('从头观看'),
       );
     } else if (progressStatus.caughtUp) {
       action = FilledButton.tonalIcon(
