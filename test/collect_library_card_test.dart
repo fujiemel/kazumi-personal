@@ -46,7 +46,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('看到第 03 集 · 全 12 话'), findsOneWidget);
-    expect(find.text('继续观看 03'), findsOneWidget);
+    expect(find.text('继续观看'), findsOneWidget);
+    expect(find.text('继续观看 03'), findsNothing);
     expect(find.textContaining('Bangumi 已看到'), findsNothing);
   });
 
@@ -70,13 +71,14 @@ void main() {
       '第 3 话',
     );
     int? resumedAt;
+    var opened = false;
 
     await tester.pumpWidget(
       _app(
         CollectLibraryView(
           entries: [entry],
           showRating: true,
-          onOpen: (_) {},
+          onOpen: (_) => opened = true,
           onChangeType: (_, _) {},
           canEdit: (_) => true,
           layout: CollectLayout.list,
@@ -94,6 +96,91 @@ void main() {
     await tester.tap(find.text('Bangumi 已看到 08 · 从此继续'));
     await tester.pump();
     expect(resumedAt, 8);
+    expect(opened, isFalse);
+  });
+
+  testWidgets('list card does not overflow at large text scale', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final item = _item();
+    final entry = CollectedBangumi(
+      item,
+      DateTime.now(),
+      CollectType.watching.value,
+    );
+    final history = History(
+      item,
+      3,
+      '测试来源',
+      DateTime.now(),
+      'https://example.com/anime',
+      '第 3 话',
+    );
+
+    await tester.pumpWidget(
+      _app(
+        CollectLibraryView(
+          entries: [entry],
+          showRating: true,
+          onOpen: (_) {},
+          onChangeType: (_, _) {},
+          canEdit: (_) => true,
+          layout: CollectLayout.list,
+          onLayoutChanged: (_) {},
+          histories: {item.id: history},
+          remoteEpisodes: {item.id: 8},
+          onResumeAtEpisode: (_, _) {},
+          onResume: (_) {},
+        ),
+        textScale: 1.6,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('继续观看'), findsOneWidget);
+  });
+
+  testWidgets('hides Bangumi progress when it is not ahead', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final item = _item();
+    final entry = CollectedBangumi(
+      item,
+      DateTime.now(),
+      CollectType.watching.value,
+    );
+    final history = History(
+      item,
+      6,
+      '测试来源',
+      DateTime.now(),
+      'https://example.com/anime',
+      '第 6 话',
+    );
+
+    await tester.pumpWidget(
+      _app(
+        CollectLibraryView(
+          entries: [entry],
+          showRating: true,
+          onOpen: (_) {},
+          onChangeType: (_, _) {},
+          canEdit: (_) => true,
+          layout: CollectLayout.list,
+          onLayoutChanged: (_) {},
+          histories: {item.id: history},
+          remoteEpisodes: {item.id: 5},
+          onResumeAtEpisode: (_, _) {},
+          onResume: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Bangumi 已看到'), findsNothing);
   });
 
   testWidgets('caught-up card shows the concrete update time', (tester) async {
@@ -141,7 +228,12 @@ void main() {
   });
 }
 
-Widget _app(Widget body) => MaterialApp(
+Widget _app(Widget body, {double textScale = 1.0}) => MaterialApp(
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: TextScaler.linear(textScale)),
+        child: child!,
+      ),
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,

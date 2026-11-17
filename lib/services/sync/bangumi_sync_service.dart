@@ -155,10 +155,14 @@ class BangumiSyncService extends ChangeNotifier {
   /// 失败不打断播放，10 分钟后才允许重试。
   Future<void> syncEpisodeProgress(int bangumiId, int episode) async {
     if (episode <= 0) return;
-    if (!GStorage.getSetting(SettingsKeys.bangumiSyncEnable)) return;
-
-    // 本地没有收藏的条目不回写，避免在 Bangumi 上意外创建收藏。
-    if (GStorage.collectibles.get(bangumiId) == null) return;
+    try {
+      if (!GStorage.getSetting(SettingsKeys.bangumiSyncEnable)) return;
+      // 本地没有收藏的条目不回写，避免在 Bangumi 上意外创建收藏。
+      if (GStorage.collectibles.get(bangumiId) == null) return;
+    } catch (_) {
+      // 存储尚未初始化（早期启动或测试环境）时直接跳过。
+      return;
+    }
 
     final requested = _requestedEpisode[bangumiId] ?? 0;
     if (episode <= requested) return;

@@ -36,8 +36,15 @@ class BangumiProgressService extends ChangeNotifier {
   bool get isLoading => _loading;
 
   static bool _enabledBySettings() {
-    if (!GStorage.getSetting(SettingsKeys.bangumiSyncEnable)) return false;
-    return GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim().isNotEmpty;
+    try {
+      if (!GStorage.getSetting(SettingsKeys.bangumiSyncEnable)) return false;
+      return GStorage.getSetting(SettingsKeys.bangumiAccessToken)
+          .trim()
+          .isNotEmpty;
+    } catch (_) {
+      // Storage is not ready yet (early startup or tests).
+      return false;
+    }
   }
 
   static Future<List<BangumiCollection>> _fetchFromApi() async {
@@ -50,13 +57,20 @@ class BangumiProgressService extends ChangeNotifier {
   /// 达到 TTL 才重新请求；[force] 用于手动刷新。
   Future<void> refresh({bool force = false}) async {
     if (_loading) return;
-    if (!_isEnabled()) return;
+    if (!_isEnabled()) {
+      // 关闭同步后旧提示不应继续显示。
+      if (_episodes.isNotEmpty) {
+        _episodes.clear();
+        _fetchedAt = null;
+        notifyListeners();
+      }
+      return;
+    }
     if (!force && _fetchedAt != null && _clock().difference(_fetchedAt!) < _ttl) {
       return;
     }
 
     _loading = true;
-    notifyListeners();
     try {
       final collections = await _fetchCollections();
       _episodes

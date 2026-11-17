@@ -185,7 +185,7 @@ class _EpisodeTile extends StatelessWidget {
       message: tooltip,
       waitDuration: const Duration(milliseconds: 350),
       child: Container(
-        width: 46,
+        width: 50,
         height: 54,
         alignment: Alignment.center,
         decoration: BoxDecoration(

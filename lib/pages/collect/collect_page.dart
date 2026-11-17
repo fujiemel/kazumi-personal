@@ -52,7 +52,7 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
         CollectSyncStep.webDav => collectController.syncCollectibles(
             onError: onError,
           ),
-        CollectSyncStep.bangumi => collectController.syncCollectiblesBangumi(
+        CollectSyncStep.bangumi => _syncBangumiProgress(
             onError: onError,
             onProgress: onProgress,
           ),
@@ -60,6 +60,20 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
             onError: onError,
           ),
       };
+
+  Future<bool> _syncBangumiProgress({
+    required ValueChanged<String> onError,
+    required void Function(String message, int current, int total) onProgress,
+  }) async {
+    final synced = await collectController.syncCollectiblesBangumi(
+      onError: onError,
+      onProgress: onProgress,
+    );
+    if (synced) {
+      unawaited(_progress.refresh(force: true));
+    }
+    return synced;
+  }
 
   @override
   void initState() {

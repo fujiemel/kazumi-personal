@@ -191,6 +191,7 @@ class _CollectPosterCard extends StatelessWidget {
             type.label,
             if (year != null) '$year 年',
             if (hasRating) '${item.ratingScore.toStringAsFixed(1)} 分',
+            if (sequelNotice != null) '续作 ${sequelNotice!.title} 已开播',
           ].join('，'),
           child: InkWell(
             onTap: onOpen,
@@ -259,8 +260,13 @@ class _CollectListTile extends StatelessWidget {
     final title = CollectLibraryQuery.titleOf(entry);
     final type = CollectType.fromValue(entry.type);
     final watched = history?.lastWatchEpisode ?? 0;
-    final remoteWatched =
-        remoteEpisode != null && remoteEpisode! > watched ? remoteEpisode : null;
+    final totalEpisodes = item.totalEpisodes;
+    final remote = remoteEpisode;
+    final remoteWatched = remote != null &&
+            remote > watched &&
+            (totalEpisodes <= 0 || remote <= totalEpisodes)
+        ? remote
+        : null;
     final progressStatus = episodeProgressStatus(
       item: item,
       watchedEpisode: watched,
@@ -289,15 +295,12 @@ class _CollectListTile extends StatelessWidget {
         label: Text(progressStatus.updateLabel ?? '等待更新'),
       );
     } else if (onResume != null) {
+      // 进度已经在卡片正文显示，按钮不再重复集数。
       action = FilledButton.tonalIcon(
         onPressed: onResume,
         style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
         icon: const Icon(Icons.play_arrow_rounded, size: 18),
-        label: Text(
-          watched > 0
-              ? '继续观看 ${watched.toString().padLeft(2, '0')}'
-              : '继续观看',
-        ),
+        label: const Text('继续观看'),
       );
     } else {
       action = FilledButton.tonalIcon(
@@ -333,6 +336,7 @@ class _CollectListTile extends StatelessWidget {
                 ?update,
                 if (remoteWatched != null)
                   'Bangumi 已看到 $remoteWatched 集',
+                if (sequelNotice != null) '续作 ${sequelNotice!.title} 已开播',
                 meta,
               ].join('，'),
               child: InkWell(onTap: onOpen),
