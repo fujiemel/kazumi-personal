@@ -160,12 +160,25 @@ class AutoUpdater {
   }
 
   Future<Map<String, dynamic>> _latestRelease() async {
-    final raw = await _downloadClient.getPlain(ApiEndpoints.latestAppMirror);
-    final data = json.decode(raw);
-    if (data is! Map) {
-      throw Exception('Invalid update response');
+    // 镜像优先；镜像不可用时再直连 GitHub API，避免更新检查单点失败。
+    Object? lastError;
+    for (final endpoint in [
+      ApiEndpoints.latestAppMirror,
+      ApiEndpoints.latestApp,
+    ]) {
+      try {
+        final raw = await _downloadClient.getPlain(endpoint);
+        final data = json.decode(raw);
+        if (data is! Map || !data.containsKey('tag_name')) {
+          throw Exception('Invalid update response');
+        }
+        return Map<String, dynamic>.from(data);
+      } catch (e) {
+        lastError = e;
+        KazumiLogger().w('Update: release lookup failed', error: e);
+      }
     }
-    return Map<String, dynamic>.from(data);
+    throw lastError ?? Exception('Update lookup failed');
   }
 
   Future<void> autoCheckForUpdates() async {
