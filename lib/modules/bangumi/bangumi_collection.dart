@@ -122,7 +122,7 @@ class BangumiCollection {
       subject['rank'] as int? ?? 0,
       subjectImages,
       subjectTags,
-      epStatus: json['ep_status'] as int? ?? 0,
+      epStatus: (json['ep_status'] as num?)?.toInt() ?? 0,
     );
   }
 }

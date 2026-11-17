@@ -64,6 +64,28 @@ void main() {
     expect(service.episodes, {1: 5});
   });
 
+  test('parses ep_status from a collection payload', () {
+    final collection = BangumiCollection.fromJson({
+      'subject_id': 1,
+      'ep_status': 8,
+      'updated_at': '2024-01-01T00:00:00+08:00',
+      'type': 3,
+      'subject': {
+        'id': 1,
+        'name': 'Subject',
+        'name_cn': '条目',
+        'date': '2024-01-01',
+        'images': <String, String>{'large': ''},
+        'eps': 12,
+        'score': 0,
+        'rank': 0,
+      },
+    });
+
+    expect(collection.epStatus, 8);
+    expect(collection.bangumiId, 1);
+  });
+
   test('does nothing when Bangumi sync is disabled', () async {
     var calls = 0;
     final service = BangumiProgressService(
