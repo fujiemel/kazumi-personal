@@ -33,7 +33,6 @@ class BangumiProgressService extends ChangeNotifier {
   bool _loading = false;
 
   Map<int, int> get episodes => _episodes;
-  bool get isLoading => _loading;
 
   static bool _enabledBySettings() {
     try {
@@ -91,12 +90,5 @@ class BangumiProgressService extends ChangeNotifier {
       _loading = false;
       notifyListeners();
     }
-  }
-
-  @visibleForTesting
-  void resetForTesting() {
-    _episodes.clear();
-    _fetchedAt = null;
-    _loading = false;
   }
 }

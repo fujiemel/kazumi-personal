@@ -76,11 +76,6 @@ class SequelNoticeService {
     _pending[item.id] = future;
     return future;
   }
-
-  void clear() {
-    _entries.clear();
-    _pending.clear();
-  }
 }
 
 class _NoticeEntry {
