@@ -63,7 +63,7 @@ Kazumi 原项目说明、平台支持和完整文档见 [README.upstream.md](REA
 - **应用内更新源改为本仓库的 GitHub Releases**
   - 检查更新：`https://api.github.com/repos/fujiemel/kazumi-personal/releases/latest`
   - 镜像检查：经 `gh-proxy.org` 访问 GitHub API
-  - APK 资产名需包含 `android` 和 `.apk`，例如 `Kazumi_android_2.4.3.apk`
+  - APK 资产名需包含 `android` 和 `.apk`，例如 `Kazumi_android_2.4.5.apk`
 
 ## 下载与安装
 
@@ -80,9 +80,9 @@ Kazumi 原项目说明、平台支持和完整文档见 [README.upstream.md](REA
 
 ## 发布新版本
 
-1. 修改 `pubspec.yaml` 的 `version:`，例如 `2.4.4+20404`
+1. 修改 `pubspec.yaml` 的 `version:`，例如 `2.4.6+20406`
 2. 提交并推送 `main`
-3. 创建并推送同名标签：`git tag 2.4.4 && git push personal 2.4.4`
+3. 创建并推送同名标签：`git tag 2.4.6 && git push personal 2.4.6`
 4. GitHub Actions 自动构建 APK 和 ZIP，并发布到 Releases
 
 注意：标签名要与 `version:` 前半段一致，应用内更新按标签名比较版本；一次只推一个标签，否则 GitHub 可能不触发构建。

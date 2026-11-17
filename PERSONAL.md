@@ -8,7 +8,7 @@
 ## 分支与备份
 
 - 分支：`personal/animeko-style`（推送到远程 `main`）
-- 标签：`personal-v1` ~ `personal-v4`、版本标签 `2.4.3`
+- 标签：`personal-v1` ~ `personal-v5`、版本标签 `2.4.3` ~ `2.4.5`
 - 单文件备份：`../kazumi-personal.bundle`
 
 ## 主要改动
@@ -54,7 +54,7 @@
 ### 构建
 - Android `applicationId`：`com.fujiemel.kazumi`，可与官方版共存
 - Gradle 镜像：`dl.google.com` + 阿里 / 腾讯
-- 产物：`../dist/kazumi-2.4.3-arm64-fujiemel.apk`
+- 产物：`../dist/kazumi-2.4.5-arm64-fujiemel.apk`
 - 固定 debug 签名：`android/app/debug.keystore`，保证本地构建和 CI 构建可以覆盖安装
 - 图标：自制 `assets/images/logo/logo_personal.svg`（粉发 + 星星发夹）
 
