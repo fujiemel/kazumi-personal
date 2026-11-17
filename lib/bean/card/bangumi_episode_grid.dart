@@ -92,11 +92,15 @@ class BangumiEpisodeGrid extends StatelessWidget {
                 children: [
                   Icon(Icons.update_rounded, size: 14, color: colors.primary),
                   const SizedBox(width: 4),
-                  Text(
-                    '下一话 ${_dateLabel(datedEpisodes[nextIndex]!)}',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.labelMedium?.copyWith(color: colors.primary),
+                  Flexible(
+                    child: Text(
+                      '下一话 ${_dateLabel(datedEpisodes[nextIndex]!)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.labelMedium?.copyWith(color: colors.primary),
+                    ),
                   ),
                 ],
               ),
@@ -140,6 +144,7 @@ class _EpisodeTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final scaler = MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.25);
     final today = BangumiEpisodeGrid._today();
     final isAired = date != null && !date!.isAfter(today);
     final isFuture = date != null && date!.isAfter(today);
@@ -202,6 +207,7 @@ class _EpisodeTile extends StatelessWidget {
               children: [
                 Text(
                   episode.episode.toInt().toString().padLeft(2, '0'),
+                  textScaler: scaler,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: foreground,
                     fontWeight: isNext ? FontWeight.w700 : FontWeight.w500,
@@ -211,6 +217,7 @@ class _EpisodeTile extends StatelessWidget {
                 if (date != null)
                   Text(
                     '${date!.month}/${date!.day}',
+                    textScaler: scaler,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       fontSize: 9,
                       height: 1.1,

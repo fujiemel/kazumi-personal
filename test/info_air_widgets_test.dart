@@ -84,6 +84,47 @@ void main() {
     expect(find.text('1/8'), findsNWidgets(2));
   });
 
+  testWidgets('episode grid stays within bounds at large text scale', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final episodes = List.generate(12, (index) {
+      final number = index + 1;
+      final date = now.subtract(Duration(days: (12 - number) * 7));
+      return EpisodeInfo(
+        id: number,
+        episode: number,
+        type: 0,
+        name: 'Episode $number',
+        nameCn: '',
+        airdate:
+            '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
+      );
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: const TextScaler.linear(1.6)),
+          child: child!,
+        ),
+        home: Scaffold(
+          body: SizedBox(
+            width: 320,
+            child: BangumiEpisodeGrid(
+              episodes: episodes,
+              watchedEpisode: 4,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('marks watched episodes and shows watched count', (tester) async {
     final episodes = List.generate(5, (index) {
       final number = index + 1;
