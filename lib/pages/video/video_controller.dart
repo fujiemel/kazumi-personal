@@ -848,6 +848,9 @@ class EpisodeRef {
   ///   null when unparsable.
   /// - Offline: always the download record's episodeNumber.
   final int? sortNumber;
+
+  /// Online history episode number stores the parsed canonical episode number,
+  /// falling back to the list index when it cannot be parsed.
   final int historyEpisodeNumber;
   final int danmakuEpisodeNumber;
   final int originalRoadIndex;
@@ -865,7 +868,8 @@ class EpisodeRef {
       displayTitle: displayTitle,
       pageUrl: pageUrl,
       sortNumber: parsedEpisodeNumber > 0 ? parsedEpisodeNumber : null,
-      historyEpisodeNumber: listIndex,
+      historyEpisodeNumber:
+          parsedEpisodeNumber > 0 ? parsedEpisodeNumber : listIndex,
       danmakuEpisodeNumber:
           parsedEpisodeNumber > 0 ? parsedEpisodeNumber : listIndex,
       originalRoadIndex: roadIndex,

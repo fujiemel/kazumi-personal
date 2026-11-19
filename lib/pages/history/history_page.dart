@@ -194,11 +194,14 @@ class _HistoryCardState extends State<_HistoryCard> with KazumiDialogOwner {
       final episodeNumber = parsed > 0 ? parsed : history.lastWatchEpisode;
       final position =
           history.progresses[history.lastWatchEpisode]?.progress.inSeconds;
-      unawaited(showSourceSheetForBangumi(
+      unawaited(resumeWithAutoSource(
         context,
+        dialogs,
         history.bangumiItem,
-        continueEpisodeNumber: episodeNumber,
-        continuePositionSeconds: position,
+        episodeNumber: episodeNumber,
+        positionSeconds: position,
+        preferredPluginName: history.adapterName,
+        preferredSrc: history.lastSrc,
       ));
       return;
     }

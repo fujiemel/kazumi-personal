@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +9,7 @@ import 'package:window_manager/window_manager.dart';
 
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/bean/widget/media_error_widget.dart';
@@ -32,7 +32,7 @@ import 'package:kazumi/services/player/pip_utils.dart';
 import 'package:kazumi/services/player/timed_shutdown_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/device.dart';
-import 'package:kazumi/utils/media.dart';
+import 'package:kazumi/utils/episode_match.dart';
 
 class VideoPage extends StatefulWidget {
   const VideoPage({
@@ -166,18 +166,13 @@ class _VideoPageState extends State<VideoPage>
     });
   }
 
-  ({int listIndex, int roadIndex})? _findEpisodePosition(int canonical) {
-    final roads = videoPageController.roadList;
-    for (var roadIndex = 0; roadIndex < roads.length; roadIndex++) {
-      final road = roads[roadIndex];
-      final count = math.min(road.data.length, road.identifier.length);
-      for (var index = 0; index < count; index++) {
-        if (extractEpisodeNumber(road.identifier[index]) == canonical) {
-          return (listIndex: index + 1, roadIndex: roadIndex);
-        }
-      }
-    }
-    return null;
+  EpisodeMatch? _findEpisodePosition(int canonical) {
+    return findEpisodeInIdentifiers(
+      videoPageController.roadList
+          .map((road) => road.identifier)
+          .toList(),
+      canonical,
+    );
   }
 
   void _initOnlineMode() {
@@ -186,26 +181,18 @@ class _VideoPageState extends State<VideoPage>
     var restored = false;
     final preferred = videoPageController.preferredEpisodeNumber;
     if (preferred != null) {
-      var position = _findEpisodePosition(preferred);
-      if (position == null && videoPageController.roadList.isNotEmpty) {
-        final road = videoPageController.roadList.first;
-        final count = math.min(road.data.length, road.identifier.length);
-        if (count > 0) {
-          final target = preferred > count
-              ? count
-              : (preferred < 1 ? 1 : preferred);
-          position = (
-            listIndex: target,
-            roadIndex: 0,
+      final match = _findEpisodePosition(preferred);
+      if (match != null) {
+        videoPageController.resetEpisodeState(
+          episode: match.listIndex,
+          road: match.roadIndex,
+        );
+        if (!match.exact) {
+          KazumiDialog.showToast(
+            message: '未找到第 $preferred 集，已定位到第 ${match.parsedNumber} 集',
           );
         }
-      }
-      if (position != null) {
-        videoPageController.resetEpisodeState(
-          episode: position.listIndex,
-          road: position.roadIndex,
-        );
-        if (playResume) {
+        if (playResume && match.exact) {
           videoPageController.historyOffset =
               videoPageController.preferredPositionSeconds ?? 0;
         }
@@ -218,16 +205,20 @@ class _VideoPageState extends State<VideoPage>
           videoPageController.bangumiItem,
           videoPageController.currentPlugin.name);
       if (progress != null) {
-        if (videoPageController.roadList.length > progress.road) {
-          if (videoPageController.roadList[progress.road].data.length >=
-              progress.episode) {
-            videoPageController.resetEpisodeState(
-              episode: progress.episode,
-              road: progress.road,
-            );
-            if (playResume) {
-              videoPageController.historyOffset = progress.progress.inSeconds;
-            }
+        final match = findEpisodeInIdentifiers(
+          videoPageController.roadList
+              .map((road) => road.identifier)
+              .toList(),
+          progress.episode,
+          preferredRoad: progress.road,
+        );
+        if (match != null) {
+          videoPageController.resetEpisodeState(
+            episode: match.listIndex,
+            road: match.roadIndex,
+          );
+          if (playResume && match.exact) {
+            videoPageController.historyOffset = progress.progress.inSeconds;
           }
         }
       }

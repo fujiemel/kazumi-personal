@@ -25,9 +25,23 @@ String decodeVideoSource(String iframeUrl) {
 }
 
 int extractEpisodeNumber(String input) {
-  final regExp = RegExp(r'第?(\d+)[话集]?');
-  final match = regExp.firstMatch(input);
+  final episodeMatches = RegExp(r'第(\d+)[话集]').allMatches(input);
+  if (episodeMatches.isNotEmpty) {
+    final lastMatch = episodeMatches.last;
+    return int.tryParse(lastMatch.group(1)!) ?? 0;
+  }
 
+  final upperInput = input.toUpperCase();
+  if (upperInput.contains('SP') ||
+      input.contains('特别篇') ||
+      input.contains('番外') ||
+      upperInput.contains('OVA') ||
+      upperInput.contains('OAD')) {
+    return 0;
+  }
+
+  final remaining = input.replaceAll(RegExp(r'第\d+季'), '');
+  final match = RegExp(r'(\d+)').firstMatch(remaining);
   if (match != null && match.group(1) != null) {
     return int.tryParse(match.group(1)!) ?? 0;
   }

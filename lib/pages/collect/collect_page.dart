@@ -141,10 +141,11 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
   }
 
   void _resumeAtEpisode(BangumiItem item, int episode) {
-    unawaited(showSourceSheetForBangumi(
+    unawaited(resumeWithAutoSource(
       context,
+      dialogs,
       item,
-      continueEpisodeNumber: episode,
+      episodeNumber: episode,
     ));
   }
 
@@ -153,11 +154,14 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
     final episodeNumber = parsed > 0 ? parsed : history.lastWatchEpisode;
     final position =
         history.progresses[history.lastWatchEpisode]?.progress.inSeconds;
-    unawaited(showSourceSheetForBangumi(
+    unawaited(resumeWithAutoSource(
       context,
+      dialogs,
       history.bangumiItem,
-      continueEpisodeNumber: episodeNumber,
-      continuePositionSeconds: position,
+      episodeNumber: episodeNumber,
+      positionSeconds: position,
+      preferredPluginName: history.adapterName,
+      preferredSrc: history.lastSrc,
     ));
   }
 
