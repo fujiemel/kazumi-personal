@@ -289,8 +289,8 @@ class _InfoPageState extends State<InfoPage>
   Future<void> _requestCoverColor() async {
     if (_coverColorRequested) return;
     _coverColorRequested = true;
-    final url = widget.bangumiItem.images['large'] ??
-        widget.bangumiItem.images['common'];
+    final url = infoController.bangumiItem.images['large'] ??
+        infoController.bangumiItem.images['common'];
     if (url == null || url.isEmpty) return;
     try {
       final color = await extractCoverSeedColor(url)
