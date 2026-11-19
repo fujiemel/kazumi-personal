@@ -30,7 +30,7 @@ class BangumiEpisodeGrid extends StatelessWidget {
               height: 42,
               decoration: BoxDecoration(
                 color: colors.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
         ],
@@ -195,7 +195,7 @@ class _EpisodeTile extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: background,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: border),
         ),
         child: Stack(

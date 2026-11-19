@@ -31,6 +31,7 @@ import 'package:kazumi/services/bangumi/sequel_notice_service.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/platform/desktop_window_config.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/utils/cover_color.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/history_lookup.dart';
 import 'package:kazumi/utils/sequel_notice.dart';
@@ -80,6 +81,8 @@ class _InfoPageState extends State<InfoPage>
   List<EpisodeInfo> episodeList = [];
   bool episodesLoading = false;
   bool episodesHasLoaded = false;
+  Color? _coverSeed;
+  bool _coverColorRequested = false;
   AiredSequel? _airedSequel;
   final BangumiEpisodeCache _episodeCache = inject<BangumiEpisodeCache>();
   final HistoryController _historyController = inject<HistoryController>();
@@ -280,6 +283,23 @@ class _InfoPageState extends State<InfoPage>
     _collectController.loadCollectibles();
     loadEpisodes();
     unawaited(_loadAiredSequel());
+    unawaited(_requestCoverColor());
+  }
+
+  Future<void> _requestCoverColor() async {
+    if (_coverColorRequested) return;
+    _coverColorRequested = true;
+    final url = widget.bangumiItem.images['large'] ??
+        widget.bangumiItem.images['common'];
+    if (url == null || url.isEmpty) return;
+    try {
+      final color = await extractCoverSeedColor(url)
+          .timeout(const Duration(milliseconds: 600));
+      if (!mounted || color == null) return;
+      setState(() {
+        _coverSeed = color;
+      });
+    } catch (_) {}
   }
 
   void onInfoTabChanged() {
@@ -414,9 +434,20 @@ class _InfoPageState extends State<InfoPage>
 
   @override
   Widget build(BuildContext context) {
+    final baseTheme = Theme.of(context);
+    final pageTheme = _coverSeed == null
+        ? baseTheme
+        : baseTheme.copyWith(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: _coverSeed!,
+              brightness: baseTheme.brightness,
+            ),
+          );
     final showWindowButton = DesktopWindowConfig.showWindowButton;
     final topOffset = Platform.isMacOS && showWindowButton ? 22.0 : 0.0;
-    return Scaffold(
+    return Theme(
+      data: pageTheme,
+      child: Scaffold(
       body: NestedScrollView(
         headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
           return <Widget>[
@@ -487,6 +518,8 @@ class _InfoPageState extends State<InfoPage>
                                 imageUrl: infoController
                                         .bangumiItem.images['large'] ??
                                     '',
+                                overlayColor: pageTheme.colorScheme.surface
+                                    .withValues(alpha: 0.55),
                               ),
                             ),
                           ),
@@ -580,6 +613,7 @@ class _InfoPageState extends State<InfoPage>
         label: const Text('开始观看'),
         icon: const Icon(Icons.play_arrow_rounded),
       ),
+      ),
     );
   }
 }
@@ -587,15 +621,17 @@ class _InfoPageState extends State<InfoPage>
 class _InfoHeaderBackground extends StatelessWidget {
   const _InfoHeaderBackground({
     required this.imageUrl,
+    required this.overlayColor,
   });
 
   static const double _downsample = 0.5;
-  static const double _blurSigma = 15.0;
+  static const double _blurSigma = 18.0;
   static const double _opacity = 0.4;
   static const double _edgeBleed = 32.0;
   static const double _bottomFeatherHeight = 48.0;
 
   final String imageUrl;
+  final Color overlayColor;
 
   @override
   Widget build(BuildContext context) {
@@ -662,6 +698,9 @@ class _InfoHeaderBackground extends StatelessWidget {
                     ),
                   ),
                 ),
+              ),
+              Positioned.fill(
+                child: ColoredBox(color: overlayColor),
               ),
               Positioned(
                 left: 0,
