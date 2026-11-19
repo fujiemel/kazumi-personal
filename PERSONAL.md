@@ -51,6 +51,16 @@
 - 回写「看到第几集」（每集看完 90% 后静默更新）
 - 读取 Bangumi 进度，比本地新时提示从该集继续
 
+### 播放（3.0.0）
+- 继续观看自动选源：先试上次用过的源，再按源顺序探测含目标集的源，全失败才弹手动选源面板
+- 集数定位：历史改存解析出的规范集号（不再存列表索引）；解析器取最后一个「第N话」、SP/特别篇/番外/OVA 返回 0；找不到目标集时定位到最近一集并提示，不再按索引硬凑
+- release 构建补回弹弹play 与 Kazumi 凭证的 dart-define 注入（需在仓库 Secrets 配置 DANDANAPI_APPID / DANDANAPI_KEY / KAZUMI_APPID / KAZUMI_KEY，缺失时弹幕接口 403）
+
+### 主题（3.0.0）
+- 默认种子色改为 Animeko 同款紫 #4F378B，预设色板换成 8 色
+- 详情页按封面取色生成页面级配色（600ms 超时回退全局色），页眉模糊 18＋surface 55% 遮罩
+- 剧集网格圆角统一 12
+
 ### 构建
 - Android `applicationId`：`com.fujiemel.kazumi`，可与官方版共存
 - Gradle 镜像：`dl.google.com` + 阿里 / 腾讯
