@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:image/image.dart' as img;
+import 'package:kazumi/services/network/proxy_aware_image_cache_manager.dart';
 
 final Map<String, Color> _coverColorCache = {};
 
@@ -68,7 +68,7 @@ Future<Color?> extractCoverSeedColor(String url) async {
   if (cached != null) return cached;
 
   try {
-    final file = await DefaultCacheManager().getSingleFile(url);
+    final file = await ProxyAwareImageCacheManager.instance.getSingleFile(url);
     final bytes = await file.readAsBytes();
     final image = img.decodeImage(bytes);
     if (image == null) return null;

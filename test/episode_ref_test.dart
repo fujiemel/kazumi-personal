@@ -5,7 +5,7 @@ import 'package:kazumi/pages/video/video_controller.dart';
 
 void main() {
   group('EpisodeRef', () {
-    test('online keeps list index for history and parses title for danmaku',
+    test('online stores parsed episode number for history and danmaku',
         () {
       final episode = EpisodeRef.online(
         listIndex: 1,
@@ -14,7 +14,7 @@ void main() {
         pageUrl: '/episode/13',
       );
 
-      expect(episode.historyEpisodeNumber, 1);
+      expect(episode.historyEpisodeNumber, 13);
       expect(episode.danmakuEpisodeNumber, 13);
       expect(episode.sortNumber, 13);
       expect(episode.originalRoadIndex, 0);
